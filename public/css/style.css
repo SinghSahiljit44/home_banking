@@ -1,0 +1,145 @@
+/* FONT & RESET */
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+  color: white;
+  min-height: 100vh;
+}
+
+/* NAVBAR */
+.navbar {
+  background-color: transparent;
+}
+
+.btn-login-top {
+  font-size: 0.9rem;
+  padding: 6px 12px;
+}
+
+/* HERO SECTION */
+.hero {
+  padding: 100px 20px;
+  text-align: center;
+}
+
+.hero h1 {
+  font-size: 3rem;
+  font-weight: bold;
+}
+
+.hero p {
+  font-size: 1.3rem;
+}
+
+/* CARD SELEZIONE LOGIN */
+.choice-card {
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+  color: white;
+}
+
+.choice-card:hover {
+  transform: translateY(-5px);
+}
+
+/* BOX LOGIN */
+.login-box {
+  max-width: 400px;
+  margin: 100px auto;
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* FORM */
+.form-label {
+  color: #fff;
+}
+
+.form-control {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: none;
+}
+
+.form-control:focus {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-color: #00c896;
+}
+
+/* BUTTONS */
+.btn-success {
+  background-color: #00c896;
+  border: none;
+}
+
+.btn-success:hover {
+  background-color: #00a882;
+}
+
+.btn-primary {
+  background-color: #0072ff;
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: #005fce;
+}
+/* Background principale */
+.gradient-bg {
+  background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Navbar trasparente */
+.transparent-navbar {
+  background: transparent;
+}
+
+/* Pulsante login navbar */
+.btn-login {
+  font-size: 0.9rem;
+  padding: 6px 12px;
+}
+
+/* Hero section */
+.hero-section {
+  padding: 100px 0;
+  text-align: center;
+}
+
+.hero-title {
+  font-size: 3rem;
+  font-weight: bold;
+}
+
+.hero-subtitle {
+  font-size: 1.5rem;
+  margin-top: 20px;
+}
+
+/* Sezione informativa */
+.info-section {
+  padding: 60px 0;
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(5px);
+}
+
+/* Box informativi */
+.info-box {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 30px;
+  border-radius: 12px;
+  height: 100%;
+  transition: transform 0.3s ease;
+}
+
+.info-box:hover {
+  transform: translateY(-8px);
+}
