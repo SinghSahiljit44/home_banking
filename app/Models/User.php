@@ -7,10 +7,19 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Fortify\TwoFactorAuthenticatable;
+use Laravel\Jetstream\HasProfilePhoto;
+use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasApiTokens;
+    use HasFactory;
+    use HasProfilePhoto;
+    use Notifiable;
+    use TwoFactorAuthenticatable;
+    use HasRoles; // Aggiunto per Spatie Permission
 
     protected $fillable = [
         'username',
@@ -20,13 +29,15 @@ class User extends Authenticatable
         'last_name',
         'phone',
         'address',
-        'role',
+        'role', // Manteniamo per compatibilità
         'is_active',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_recovery_codes',
+        'two_factor_secret',
     ];
 
     protected function casts(): array
@@ -38,6 +49,7 @@ class User extends Authenticatable
         ];
     }
 
+    // Relazioni esistenti dal tuo progetto
     public function account(): HasOne
     {
         return $this->hasOne(Account::class);
@@ -53,14 +65,20 @@ class User extends Authenticatable
         return $this->hasOne(SecurityQuestion::class);
     }
 
+    // Metodi helper per i ruoli (semplificati per progetto universitario)
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->hasRole('admin');
     }
 
     public function isClient(): bool
     {
-        return $this->role === 'client';
+        return $this->hasRole('client');
+    }
+
+    public function isEmployee(): bool
+    {
+        return $this->hasRole('employee');
     }
 
     public function getFullNameAttribute(): string
