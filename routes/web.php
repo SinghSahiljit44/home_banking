@@ -54,22 +54,55 @@ Route::post('/login-lavoratore', function (Request $request) {
     return back()->withErrors(['login' => 'Credenziali non valide o account non attivo.']);
 })->name('lavoratore.login.submit');
 
-// Dashboard temporanee (da implementare)
-Route::get('/dashboard-cliente', function (): RedirectResponse|View {
-    if (!Auth::check() || !Auth::user()->isClient()) {
-        return redirect('/login')->withErrors(['access' => 'Accesso non autorizzato.']);
-    }
+// Dashboard protected routes
+Route::middleware(['auth'])->group(function () {
     
-    return view('dashboard-cliente');
-})->name('dashboard.cliente');
+    // Dashboard cliente
+    Route::get('/dashboard-cliente', function () {
+        $user = Auth::user();
+        
+        if (!$user || !$user->isClient()) {
+            Auth::logout();
+            return redirect('/login')->withErrors(['access' => 'Accesso non autorizzato.']);
+        }
+        
+        return view('dashboard-cliente');
+    })->name('dashboard.cliente');
 
-Route::get('/dashboard-admin', function () {
-    if (!Auth::check() || !Auth::user()->isAdmin()) {
-        return redirect('/login')->withErrors(['access' => 'Accesso non autorizzato.']);
-    }
+    // Dashboard admin
+    Route::get('/dashboard-admin', function () {
+        $user = Auth::user();
+        
+        if (!$user || !$user->isAdmin()) {
+            Auth::logout();
+            return redirect('/login')->withErrors(['access' => 'Accesso non autorizzato.']);
+        }
+        
+        return view('dashboard-admin');
+    })->name('dashboard.admin');
+
+    // Main dashboard route with proper redirect logic
+    Route::get('/dashboard', function () {
+        $user = Auth::user();
+        
+        if (!$user) {
+            return redirect('/login');
+        }
+        
+        if ($user->isAdmin()) {
+            return redirect()->route('dashboard.admin');
+        }
+        
+        if ($user->isClient()) {
+            return redirect()->route('dashboard.cliente');
+        }
+        
+        // If user has no valid role, logout and redirect
+        Auth::logout();
+        return redirect('/login')->withErrors(['access' => 'Ruolo utente non riconosciuto.']);
+    })->name('dashboard');
     
-    return view('dashboard-admin');
-})->name('dashboard.admin');
+});
 
 // Logout
 Route::post('/logout', function () {

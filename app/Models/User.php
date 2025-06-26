@@ -85,4 +85,59 @@ class User extends Authenticatable
     {
         return $this->first_name . ' ' . $this->last_name;
     }
+
+        public function isClient(): bool
+    {
+        return $this->role === 'client';
+    }
+
+    /**
+     * Check if user is an admin
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Get the user's display name (compatibility with Jetstream)
+     */
+    public function getNameAttribute(): ?string
+    {
+        return $this->full_name ?? $this->username ?? 'User';
+    }
+
+    /**
+     * Get profile photo URL (compatibility with Jetstream navigation)
+     */
+    public function getProfilePhotoUrlAttribute(): string
+    {
+        // Return a default avatar or empty string if no profile photo system
+        return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
+    }
+
+    /**
+     * Check if user has a specific role (for middleware compatibility)
+     */
+    public function hasRole(string $role): bool
+    {
+        return $this->role === $role;
+    }
+
+    /**
+     * For Jetstream team compatibility (returns empty collection if not using teams)
+     */
+    public function allTeams()
+    {
+        return collect(); // Empty collection
+    }
+
+    /**
+     * For Jetstream team compatibility (returns null if not using teams)
+     */
+    public function getCurrentTeamAttribute()
+    {
+        return null;
+    }
+
 }
