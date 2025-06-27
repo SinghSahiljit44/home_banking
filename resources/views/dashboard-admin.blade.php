@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.bootstrap')
 
 @section('title', 'Dashboard Amministratore')
 
@@ -8,10 +8,13 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2>Dashboard Amministratore</h2>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-light">Logout</button>
-                </form>
+                <div>
+                    <span class="text-white-50 me-3">Benvenuto, {{ Auth::user()->full_name }}</span>
+                    <form method="POST" action="{{ route('logout') }}" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -127,7 +130,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach(\App\Models\Transaction::with(['fromAccount.user', 'toAccount.user'])->latest()->take(10)->get() as $transaction)
+                                @forelse(\App\Models\Transaction::with(['fromAccount.user', 'toAccount.user'])->latest()->take(10)->get() as $transaction)
                                 <tr>
                                     <td>{{ $transaction->created_at->format('d/m/Y H:i') }}</td>
                                     <td>{{ $transaction->fromAccount ? $transaction->fromAccount->user->full_name : 'Sistema' }}</td>
@@ -140,7 +143,11 @@
                                         </span>
                                     </td>
                                 </tr>
-                                @endforeach
+                                @empty
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">Nessuna transazione trovata</td>
+                                </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>

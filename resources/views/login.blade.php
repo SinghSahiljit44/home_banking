@@ -1,10 +1,25 @@
-@extends('layouts.app')
+@extends('layouts.bootstrap')
 
 @section('title', 'Login')
 
 @section('content')
 <div class="container text-center" style="margin-top: 100px;">
   <h2 class="mb-5">Seleziona il tipo di accesso</h2>
+  
+  @if ($errors->any())
+    <div class="alert alert-danger">
+      @foreach ($errors->all() as $error)
+        <p class="mb-0">{{ $error }}</p>
+      @endforeach
+    </div>
+  @endif
+
+  @if (session('success'))
+    <div class="alert alert-success">
+      {{ session('success') }}
+    </div>
+  @endif
+
   <div class="row justify-content-center g-4">
     <div class="col-md-4">
       <div class="choice-card">

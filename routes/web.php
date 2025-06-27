@@ -5,57 +5,109 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use App\Http\Controllers\Client\TransferController;
+use App\Http\Controllers\Client\ProfileController;
+use App\Http\Controllers\Client\AccountController;
+use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Admin\AdminDashboardController;
 
 // Homepage
 Route::view('/', 'index');
 
-// Pagina di selezione login
-Route::view('/login', 'login');
+// Routes per ospiti (non autenticati)
+Route::middleware('guest')->group(function () {
+    Route::view('/login', 'login');
+    Route::view('/login-cliente', 'login-cliente');
+    Route::view('/login-lavoratore', 'login-lavoratore');
 
-// Form di login
-Route::view('/login-cliente', 'login-cliente');
-Route::view('/login-lavoratore', 'login-lavoratore');
+    // Form di registrazione (opzionale)
+    Route::view('/register', 'register')->name('register.form');
+    
+    // Gestione registrazione
+    Route::post('/register', function (Request $request) {
+        $request->validate([
+            'first_name' => 'required|string|max:50',
+            'last_name' => 'required|string|max:50',
+            'username' => 'required|string|max:50|unique:users',
+            'email' => 'required|string|email|max:100|unique:users',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
 
-// Gestione login cliente
-Route::post('/login-cliente', function (Request $request) {
-    $username = $request->input('username');
-    $password = $request->input('password');
-    
-    // Cerca l'utente con il ruolo cliente
-    $user = User::where('username', $username)
-                ->where('role', 'client')
-                ->where('is_active', true)
-                ->first();
-    
-    if ($user && Hash::check($password, $user->password)) {
-        Auth::login($user);
-        return redirect('/dashboard-cliente')->with('success', 'Accesso effettuato con successo!');
-    }
-    
-    return back()->withErrors(['login' => 'Credenziali non valide o account non attivo.']);
-})->name('cliente.login.submit');
+        $user = User::create([
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'username' => $request->username,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'address' => $request->address,
+            'password' => Hash::make($request->password),
+            'role' => 'client',
+            'is_active' => false, // Richiede attivazione da admin
+        ]);
 
-// Gestione login lavoratore (admin)
-Route::post('/login-lavoratore', function (Request $request) {
-    $matricola = $request->input('matricola');
-    $password = $request->input('password');
-    
-    // Cerca l'utente con il ruolo admin
-    $user = User::where('username', $matricola)
-                ->where('role', 'admin')
-                ->where('is_active', true)
-                ->first();
-    
-    if ($user && Hash::check($password, $user->password)) {
-        Auth::login($user);
-        return redirect('/dashboard-admin')->with('success', 'Accesso effettuato con successo!');
-    }
-    
-    return back()->withErrors(['login' => 'Credenziali non valide o account non attivo.']);
-})->name('lavoratore.login.submit');
+        return redirect('/login')->with('success', 'Registrazione completata! Il tuo account sarà attivato dall\'amministratore.');
+    })->name('register');
 
-// Dashboard protected routes
+    // Gestione login cliente
+    Route::post('/login-cliente', function (Request $request) {
+        $request->validate([
+            'username' => 'required|string',
+            'password' => 'required|string',
+        ]);
+
+        $username = $request->input('username');
+        $password = $request->input('password');
+        
+        $user = User::where('username', $username)
+                    ->where('role', 'client')
+                    ->where('is_active', true)
+                    ->first();
+        
+        if ($user && Hash::check($password, $user->password)) {
+            Auth::login($user, $request->filled('remember'));
+            $request->session()->regenerate();
+            return redirect()->intended('/dashboard-cliente')->with('success', 'Accesso effettuato con successo!');
+        }
+        
+        return back()->withErrors(['login' => 'Credenziali non valide o account non attivo.'])->withInput($request->only('username'));
+    })->name('cliente.login.submit');
+
+    // Gestione login lavoratore (admin/employee)
+    Route::post('/login-lavoratore', function (Request $request) {
+        $request->validate([
+            'matricola' => 'required|string',
+            'password' => 'required|string',
+        ]);
+
+        $matricola = $request->input('matricola');
+        $password = $request->input('password');
+        
+        $user = User::where('username', $matricola)
+                    ->whereIn('role', ['admin', 'employee'])
+                    ->where('is_active', true)
+                    ->first();
+        
+        if ($user && Hash::check($password, $user->password)) {
+            Auth::login($user, $request->filled('remember'));
+            $request->session()->regenerate();
+            
+            if ($user->isAdmin()) {
+                return redirect()->intended('/dashboard-admin')->with('success', 'Accesso effettuato con successo!');
+            } else {
+                return redirect()->intended('/employee/dashboard')->with('success', 'Accesso effettuato con successo!');
+            }
+        }
+        
+        return back()->withErrors(['login' => 'Credenziali non valide o account non attivo.'])->withInput($request->only('matricola'));
+    })->name('lavoratore.login.submit');
+});
+
+// Routes protette (utenti autenticati)
 Route::middleware(['auth'])->group(function () {
+    
+    // ========== DASHBOARD ROUTES ==========
     
     // Dashboard cliente
     Route::get('/dashboard-cliente', function () {
@@ -81,7 +133,19 @@ Route::middleware(['auth'])->group(function () {
         return view('dashboard-admin');
     })->name('dashboard.admin');
 
-    // Main dashboard route with proper redirect logic
+    // Dashboard employee
+    Route::get('/employee/dashboard', function () {
+        $user = Auth::user();
+        
+        if (!$user || !$user->isEmployee()) {
+            Auth::logout();
+            return redirect('/login')->withErrors(['access' => 'Accesso non autorizzato.']);
+        }
+        
+        return view('dashboard-employee');
+    })->name('dashboard.employee');
+
+    // Main dashboard redirect
     Route::get('/dashboard', function () {
         $user = Auth::user();
         
@@ -97,15 +161,90 @@ Route::middleware(['auth'])->group(function () {
             return redirect()->route('dashboard.cliente');
         }
         
-        // If user has no valid role, logout and redirect
+        if ($user->isEmployee()) {
+            return redirect()->route('dashboard.employee');
+        }
+        
         Auth::logout();
         return redirect('/login')->withErrors(['access' => 'Ruolo utente non riconosciuto.']);
     })->name('dashboard');
+
+    // ========== CLIENT ROUTES ==========
     
+    Route::middleware(['role:client'])->prefix('client')->name('client.')->group(function () {
+        
+        // BONIFICI
+        Route::prefix('transfer')->name('transfer.')->group(function () {
+            Route::get('/create', [TransferController::class, 'create'])->name('create');
+            Route::post('/store', [TransferController::class, 'store'])->name('store');
+            Route::post('/confirm', [TransferController::class, 'confirm'])->name('confirm');
+            Route::get('/cancel', [TransferController::class, 'cancel'])->name('cancel');
+        });
+
+        // PROFILO
+        Route::prefix('profile')->name('profile.')->group(function () {
+            Route::get('/', [ProfileController::class, 'show'])->name('show');
+            Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
+            Route::post('/update', [ProfileController::class, 'update'])->name('update');
+            Route::post('/confirm-changes', [ProfileController::class, 'confirmChanges'])->name('confirm-changes');
+            Route::get('/cancel-changes', [ProfileController::class, 'cancelChanges'])->name('cancel-changes');
+            
+            // Cambio password
+            Route::get('/change-password', [ProfileController::class, 'showChangePassword'])->name('change-password');
+            Route::post('/change-password', [ProfileController::class, 'changePassword'])->name('change-password.store');
+            Route::post('/confirm-password-change', [ProfileController::class, 'confirmPasswordChange'])->name('confirm-password-change');
+        });
+
+        // CONTO E MOVIMENTI
+        Route::prefix('account')->name('account.')->group(function () {
+            Route::get('/', [AccountController::class, 'show'])->name('show');
+            Route::get('/export-csv', [AccountController::class, 'exportCsv'])->name('export-csv');
+            Route::get('/transaction/{id}', [AccountController::class, 'showTransaction'])->name('transaction.show');
+        });
+    });
+
+    // ========== ADMIN ROUTES ==========
+    
+    Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
+        
+        // Dashboard admin con controller
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        
+        // GESTIONE UTENTI
+        Route::prefix('users')->name('users.')->group(function () {
+            Route::get('/', [AdminUserController::class, 'index'])->name('index');
+            Route::get('/create', [AdminUserController::class, 'create'])->name('create');
+            Route::post('/', [AdminUserController::class, 'store'])->name('store');
+            Route::get('/{user}', [AdminUserController::class, 'show'])->name('show');
+            Route::get('/{user}/edit', [AdminUserController::class, 'edit'])->name('edit');
+            Route::put('/{user}', [AdminUserController::class, 'update'])->name('update');
+            Route::delete('/{user}', [AdminUserController::class, 'destroy'])->name('destroy');
+            
+            // Azioni speciali
+            Route::post('/{user}/create-account', [AdminUserController::class, 'createAccount'])->name('create-account');
+            Route::post('/{user}/toggle-account', [AdminUserController::class, 'toggleAccountStatus'])->name('toggle-account');
+            Route::post('/{user}/deposit', [AdminUserController::class, 'deposit'])->name('deposit');
+        });
+    });
+
+    // ========== EMPLOYEE ROUTES ==========
+    
+    Route::middleware(['role:employee'])->prefix('employee')->name('employee.')->group(function () {
+        // Routes per dipendenti (da implementare se necessario)
+        Route::get('/dashboard', function () {
+            return view('employee.dashboard');
+        })->name('dashboard');
+    });
 });
 
-// Logout
-Route::post('/logout', function () {
+// ========== LOGOUT ==========
+Route::post('/logout', function (Request $request) {
     Auth::logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
     return redirect('/')->with('success', 'Logout effettuato con successo.');
 })->name('logout');
+
+// ========== JETSTREAM ROUTES (se necessarie) ==========
+// Queste routes sono gestite automaticamente da Jetstream
+// ma le manteniamo per compatibilità

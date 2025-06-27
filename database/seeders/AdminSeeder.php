@@ -40,60 +40,74 @@ class AdminSeeder extends Seeder
         // Permessi base per employee
         $employeeRole->givePermissionTo(['view_dashboard', 'view_accounts', 'view_transactions']);
 
-        // Crea l'utente admin
-        $admin = User::create([
-            'username' => 'admin',
-            'email' => 'admin@homebanking.com',
-            'password' => Hash::make('admin123'),
-            'first_name' => 'System',
-            'last_name' => 'Administrator',
-            'phone' => '+1234567890',
-            'address' => 'Bank Headquarters',
-            'role' => 'admin',
-            'is_active' => true,
-            'email_verified_at' => now(),
-        ]);
+        // Crea l'utente admin se non esiste
+        $admin = User::firstOrCreate(
+            ['username' => 'admin'],
+            [
+                'email' => 'admin@homebanking.com',
+                'password' => Hash::make('admin123'),
+                'first_name' => 'System',
+                'last_name' => 'Administrator',
+                'phone' => '+1234567890',
+                'address' => 'Bank Headquarters',
+                'role' => 'admin',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
 
-        // Assegna il ruolo admin
-        $admin->assignRole('admin');
+        // Assegna il ruolo admin se non già assegnato
+        if (!$admin->hasRole('admin')) {
+            $admin->assignRole('admin');
+        }
 
-        // Crea la security question
-        SecurityQuestion::create([
-            'user_id' => $admin->id,
-            'question' => 'What is your mother\'s maiden name?',
-            'answer_hash' => Hash::make('admin'),
-        ]);
+        // Crea la security question se non esiste
+        SecurityQuestion::firstOrCreate(
+            ['user_id' => $admin->id],
+            [
+                'question' => 'What is your mother\'s maiden name?',
+                'answer_hash' => Hash::make('admin'),
+            ]
+        );
 
-        // Crea un cliente di test
-        $client = User::create([
-            'username' => 'cliente1',
-            'email' => 'cliente@test.com',
-            'password' => Hash::make('password123'),
-            'first_name' => 'Mario',
-            'last_name' => 'Rossi',
-            'phone' => '+1234567891',
-            'address' => 'Via Roma 1, Milano',
-            'role' => 'client',
-            'is_active' => true,
-            'email_verified_at' => now(),
-        ]);
+        // Crea un cliente di test se non esiste
+        $client = User::firstOrCreate(
+            ['username' => 'cliente1'],
+            [
+                'email' => 'cliente@test.com',
+                'password' => Hash::make('password123'),
+                'first_name' => 'Mario',
+                'last_name' => 'Rossi',
+                'phone' => '+1234567891',
+                'address' => 'Via Roma 1, Milano',
+                'role' => 'client',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
 
-        $client->assignRole('client');
+        if (!$client->hasRole('client')) {
+            $client->assignRole('client');
+        }
 
-        // Crea un dipendente di test
-        $employee = User::create([
-            'username' => 'dipendente1',
-            'email' => 'dipendente@test.com',
-            'password' => Hash::make('password123'),
-            'first_name' => 'Giulia',
-            'last_name' => 'Bianchi',
-            'phone' => '+1234567892',
-            'address' => 'Via Milano 2, Roma',
-            'role' => 'employee',
-            'is_active' => true,
-            'email_verified_at' => now(),
-        ]);
+        // Crea un dipendente di test se non esiste
+        $employee = User::firstOrCreate(
+            ['username' => 'dipendente1'],
+            [
+                'email' => 'dipendente@test.com',
+                'password' => Hash::make('password123'),
+                'first_name' => 'Giulia',
+                'last_name' => 'Bianchi',
+                'phone' => '+1234567892',
+                'address' => 'Via Milano 2, Roma',
+                'role' => 'employee',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
 
-        $employee->assignRole('employee');
+        if (!$employee->hasRole('employee')) {
+            $employee->assignRole('employee');
+        }
     }
 }

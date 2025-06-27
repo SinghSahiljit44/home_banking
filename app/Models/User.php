@@ -19,7 +19,7 @@ class User extends Authenticatable
     use HasProfilePhoto;
     use Notifiable;
     use TwoFactorAuthenticatable;
-    use HasRoles; // Aggiunto per Spatie Permission
+    use HasRoles;
 
     protected $fillable = [
         'username',
@@ -29,7 +29,7 @@ class User extends Authenticatable
         'last_name',
         'phone',
         'address',
-        'role', // Manteniamo per compatibilità
+        'role',
         'is_active',
     ];
 
@@ -49,7 +49,7 @@ class User extends Authenticatable
         ];
     }
 
-    // Relazioni esistenti dal tuo progetto
+    // Relazioni
     public function account(): HasOne
     {
         return $this->hasOne(Account::class);
@@ -65,38 +65,25 @@ class User extends Authenticatable
         return $this->hasOne(SecurityQuestion::class);
     }
 
-    // Metodi helper per i ruoli (semplificati per progetto universitario)
+    // Metodi helper per i ruoli
     public function isAdmin(): bool
     {
-        return $this->hasRole('admin');
+        return $this->role === 'admin';
     }
 
     public function isClient(): bool
     {
-        return $this->hasRole('client');
+        return $this->role === 'client';
     }
 
     public function isEmployee(): bool
     {
-        return $this->hasRole('employee');
+        return $this->role === 'employee';
     }
 
     public function getFullNameAttribute(): string
     {
-        return $this->first_name . ' ' . $this->last_name;
-    }
-
-        public function isClient(): bool
-    {
-        return $this->role === 'client';
-    }
-
-    /**
-     * Check if user is an admin
-     */
-    public function isAdmin(): bool
-    {
-        return $this->role === 'admin';
+        return trim($this->first_name . ' ' . $this->last_name);
     }
 
     /**
@@ -112,7 +99,6 @@ class User extends Authenticatable
      */
     public function getProfilePhotoUrlAttribute(): string
     {
-        // Return a default avatar or empty string if no profile photo system
         return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
     }
 
@@ -129,7 +115,7 @@ class User extends Authenticatable
      */
     public function allTeams()
     {
-        return collect(); // Empty collection
+        return collect();
     }
 
     /**
@@ -139,5 +125,4 @@ class User extends Authenticatable
     {
         return null;
     }
-
 }

@@ -1,5 +1,4 @@
 <?php
-// app/Http/Responses/LoginResponse.php
 
 namespace App\Http\Responses;
 
@@ -11,12 +10,12 @@ class LoginResponse implements LoginResponseContract
     {
         $user = auth()->user();
         
-        if ($user->hasRole('admin')) {
-            return redirect()->intended('/admin/dashboard');
-        } elseif ($user->hasRole('employee')) {
+        if ($user->isAdmin()) {
+            return redirect()->intended('/dashboard-admin');
+        } elseif ($user->isEmployee()) {
             return redirect()->intended('/employee/dashboard');
-        } elseif ($user->hasRole('client')) {
-            return redirect()->intended('/client/dashboard');
+        } elseif ($user->isClient()) {
+            return redirect()->intended('/dashboard-cliente');
         }
         
         return redirect()->intended('/dashboard');
