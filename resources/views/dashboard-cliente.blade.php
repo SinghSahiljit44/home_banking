@@ -27,19 +27,19 @@
         <div class="col-md-8">
             <div class="card bg-transparent border-light">
                 <div class="card-header">
-                    <h5>Il tuo Conto</h5>
+                    <h5 class="text-white">Il tuo Conto</h5>
                 </div>
                 <div class="card-body">
                     @if(Auth::user()->account)
                         <div class="row">
                             <div class="col-md-6">
-                                <p><strong>Numero Conto:</strong><br>{{ Auth::user()->account->account_number }}</p>
-                                <p><strong>IBAN:</strong><br>{{ Auth::user()->account->iban }}</p>
+                                <p><strong><span class="text-white">Numero Conto:</span></strong><br><span class="text-white">{{ Auth::user()->account->account_number }}</span></p>
+                                <p><strong><span class="text-white">IBAN:</span></strong><br><span class="text-white">{{ Auth::user()->account->iban }}</span></p>
                             </div>
                             <div class="col-md-6">
-                                <p><strong>Saldo Disponibile:</strong></p>
+                                <p><strong><span class="text-white">Saldo Disponibile:</span></strong></p>
                                 <h3 class="text-success">€{{ number_format(Auth::user()->account->balance, 2, ',', '.') }}</h3>
-                                <p><strong>Stato Conto:</strong> 
+                                <p><strong><span class="text-white">Stato Conto:</span></strong> 
                                     <span class="badge {{ Auth::user()->account->is_active ? 'bg-success' : 'bg-danger' }}">
                                         {{ Auth::user()->account->is_active ? 'Attivo' : 'Sospeso' }}
                                     </span>
@@ -57,9 +57,9 @@
         </div>
 
         <div class="col-md-4">
-                <div class="card bg-transparent border-light">
+            <div class="card bg-transparent border-light">
                 <div class="card-header">
-                    <h5>Azioni Rapide</h5>
+                    <h5 class="text-white">Azioni Rapide</h5>
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
@@ -102,7 +102,7 @@
         <div class="col-12">
             <div class="card bg-transparent border-light">
                 <div class="card-header">
-                    <h5>Ultime Transazioni</h5>
+                    <h5 class="text-white">Ultime Transazioni</h5>
                 </div>
                 <div class="card-body">
                     @if(Auth::user()->account && Auth::user()->account->allTransactions()->exists())
@@ -143,7 +143,7 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <small class="text-muted">{{ $transaction->reference_code }}</small>
+                                            <small class="text-muted, text-white">{{ $transaction->reference_code }}</small>
                                         </td>
                                     </tr>
                                     @endforeach
@@ -174,18 +174,18 @@
         <div class="col-md-6">
             <div class="card bg-transparent border-light">
                 <div class="card-header">
-                    <h5>Informazioni Profilo</h5>
+                    <h5 class="text-white">Informazioni Profilo</h5>
                 </div>
                 <div class="card-body">
-                    <p><strong>Nome Completo:</strong> {{ Auth::user()->full_name }}</p>
-                    <p><strong>Email:</strong> {{ Auth::user()->email }}</p>
+                    <p class="text-white"><strong>Nome Completo:</strong> {{ Auth::user()->full_name }}</p>
+                    <p class="text-white"><strong>Email:</strong> {{ Auth::user()->email }}</p>
                     @if(Auth::user()->phone)
-                        <p><strong>Telefono:</strong> {{ Auth::user()->phone }}</p>
+                        <p class="text-white"><strong>Telefono:</strong> {{ Auth::user()->phone }}</p>
                     @endif
                     @if(Auth::user()->address)
-                        <p><strong>Indirizzo:</strong> {{ Auth::user()->address }}</p>
+                        <p class="text-white"><strong>Indirizzo:</strong> {{ Auth::user()->address }}</p>
                     @endif
-                    <small class="text-muted">Registrato il {{ Auth::user()->created_at->format('d/m/Y') }}</small>
+                    <small class="text-white">Registrato il {{ Auth::user()->created_at->format('d/m/Y') }}</small>
                 </div>
             </div>
         </div>
@@ -193,7 +193,7 @@
         <div class="col-md-6">
             <div class="card bg-transparent border-light">
                 <div class="card-header">
-                    <h5>Accesso Rapido</h5>
+                    <h5 class="text-white">Accesso Rapido</h5>
                 </div>
                 <div class="card-body">
                     <div class="list-group list-group-flush bg-transparent">

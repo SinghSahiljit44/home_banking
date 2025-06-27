@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('token', 6);
-            $table->enum('type', ['login', 'transfer', 'password_reset']);
+            $table->enum('type', ['login', 'transfer', 'password_reset', 'password_change', 'profile_change']);
             $table->timestamp('expires_at');
             $table->timestamp('used_at')->nullable();
             $table->timestamps();

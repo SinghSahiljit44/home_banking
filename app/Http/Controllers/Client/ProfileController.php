@@ -25,7 +25,7 @@ class ProfileController extends Controller
     public function show()
     {
         $user = Auth::user();
-        return view('client.profile.show', compact('user'));
+        return view('profile.show', compact('user')); // Cambiato da 'client.profile.show' a 'profile.show'
     }
 
     /**
@@ -34,7 +34,7 @@ class ProfileController extends Controller
     public function edit()
     {
         $user = Auth::user();
-        return view('client.profile.edit', compact('user'));
+        return view('profile.edit', compact('user')); // Cambiato da 'client.profile.edit' a 'profile.edit'
     }
 
     /**
@@ -89,7 +89,7 @@ class ProfileController extends Controller
         if (isset($changes['email'])) {
             $this->otpService->generateOtp($user, 'profile_change');
             
-            return view('client.profile.confirm-otp', [
+            return view('profile.confirm-otp', [
                 'changes' => $changes,
                 'development_otp' => app()->environment('local') ? $this->otpService->getLastOtpForDevelopment($user) : null
             ]);
@@ -139,7 +139,7 @@ class ProfileController extends Controller
      */
     public function showChangePassword()
     {
-        return view('client.profile.change-password');
+        return view('profile.change-password'); // Cambiato da 'client.profile.change-password' a 'profile.change-password'
     }
 
     /**
@@ -175,7 +175,7 @@ class ProfileController extends Controller
             'new_password' => Hash::make($request->new_password),
         ]);
 
-        return view('client.profile.confirm-password-otp', [
+        return view('profile.confirm-password-otp', [
             'development_otp' => app()->environment('local') ? $this->otpService->getLastOtpForDevelopment($user) : null
         ]);
     }

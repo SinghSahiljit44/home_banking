@@ -142,4 +142,39 @@ body {
 
 .info-box:hover {
   transform: translateY(-8px);
+};
+}
+
+.page-link {
+  color: white !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.page-link:hover {
+  color: white !important;
+  background-color: rgba(255, 255, 255, 0.2) !important;
+};
+
+.page-link {
+  color: white !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.page-link:hover {
+  color: white !important;
+  background-color: rgba(255, 255, 255, 0.2) !important;
+e;
+}
+
+.page-link {
+  color: white !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.page-link:hover {
+  color: white !important;
+  background-color: rgba(255, 255, 255, 0.2) !important;
 }

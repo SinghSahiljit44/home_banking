@@ -125,4 +125,19 @@ class User extends Authenticatable
     {
         return null;
     }
+
+     public function beneficiaries(): HasMany
+    {
+        return $this->hasMany(Beneficiary::class);
+    }
+
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(ActivityLog::class);
+    }
 }

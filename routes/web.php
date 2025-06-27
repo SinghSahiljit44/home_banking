@@ -23,6 +23,15 @@ Route::middleware('guest')->group(function () {
     // Form di registrazione (opzionale)
     Route::view('/register', 'register')->name('register.form');
     
+    // Password Reset Routes (se non gestite da Fortify)
+    Route::get('/forgot-password', function () {
+        return view('auth.forgot-password');
+    })->name('password.request');
+    
+    Route::get('/reset-password/{token}', function ($token) {
+        return view('auth.reset-password', ['token' => $token]);
+    })->name('password.reset');
+
     // Gestione registrazione
     Route::post('/register', function (Request $request) {
         $request->validate([
@@ -145,6 +154,8 @@ Route::middleware(['auth'])->group(function () {
         return view('dashboard-employee');
     })->name('dashboard.employee');
 
+    
+
     // Main dashboard redirect
     Route::get('/dashboard', function () {
         $user = Auth::user();
@@ -180,6 +191,23 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/confirm', [TransferController::class, 'confirm'])->name('confirm');
             Route::get('/cancel', [TransferController::class, 'cancel'])->name('cancel');
         });
+        
+        //NOTIFICHE
+        Route::prefix('notifications')->name('notifications.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Client\NotificationController::class, 'index'])->name('index');
+            Route::post('/{id}/mark-as-read', [App\Http\Controllers\Client\NotificationController::class, 'markAsRead'])->name('mark-as-read');
+            Route::post('/mark-all-read', [App\Http\Controllers\Client\NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
+            Route::delete('/{id}', [App\Http\Controllers\Client\NotificationController::class, 'destroy'])->name('destroy');
+        });
+
+        // BENEFICIARI
+        Route::prefix('beneficiaries')->name('beneficiaries.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Client\BeneficiaryController::class, 'index'])->name('index');
+            Route::post('/', [App\Http\Controllers\Client\BeneficiaryController::class, 'store'])->name('store');
+            Route::put('/{beneficiary}', [App\Http\Controllers\Client\BeneficiaryController::class, 'update'])->name('update');
+            Route::post('/{beneficiary}/toggle-favorite', [App\Http\Controllers\Client\BeneficiaryController::class, 'toggleFavorite'])->name('toggle-favorite');
+            Route::delete('/{beneficiary}', [App\Http\Controllers\Client\BeneficiaryController::class, 'destroy'])->name('destroy');
+        });
 
         // PROFILO
         Route::prefix('profile')->name('profile.')->group(function () {
@@ -200,6 +228,37 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/', [AccountController::class, 'show'])->name('show');
             Route::get('/export-csv', [AccountController::class, 'exportCsv'])->name('export-csv');
             Route::get('/transaction/{id}', [AccountController::class, 'showTransaction'])->name('transaction.show');
+        });
+
+        // SUPPORTO E ASSISTENZA
+        Route::prefix('support')->name('support.')->group(function () {
+            Route::get('/', function () {
+                return view('client.support.index');
+            })->name('index');
+            
+            Route::get('/contact', function () {
+                return view('client.support.contact');
+            })->name('contact');
+            
+            Route::post('/contact', function (Illuminate\Http\Request $request) {
+                // Implementa invio richiesta supporto
+                return back()->with('success', 'Richiesta inviata con successo. Ti contatteremo presto.');
+            })->name('contact.store');
+        });
+
+        // IMPOSTAZIONI
+        Route::prefix('settings')->name('settings.')->group(function () {
+            Route::get('/', function () {
+                return view('client.settings.index');
+            })->name('index');
+            
+            Route::get('/security', function () {
+                return view('client.settings.security');
+            })->name('security');
+            
+            Route::get('/preferences', function () {
+                return view('client.settings.preferences');
+            })->name('preferences');
         });
     });
 
@@ -224,6 +283,89 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{user}/create-account', [AdminUserController::class, 'createAccount'])->name('create-account');
             Route::post('/{user}/toggle-account', [AdminUserController::class, 'toggleAccountStatus'])->name('toggle-account');
             Route::post('/{user}/deposit', [AdminUserController::class, 'deposit'])->name('deposit');
+        });
+
+        // REPORT E STATISTICHE
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Admin\ReportController::class, 'index'])->name('index');
+            Route::get('/transactions', [App\Http\Controllers\Admin\ReportController::class, 'transactions'])->name('transactions');
+            Route::get('/users', [App\Http\Controllers\Admin\ReportController::class, 'users'])->name('users');
+            Route::get('/export/transactions', [App\Http\Controllers\Admin\ReportController::class, 'exportTransactions'])->name('export.transactions');
+        });
+
+        // GESTIONE TRANSAZIONI
+        Route::prefix('transactions')->name('transactions.')->group(function () {
+            Route::get('/', function () {
+                return view('admin.transactions.index');
+            })->name('index');
+            
+            Route::get('/{transaction}', function ($transaction) {
+                return view('admin.transactions.show', compact('transaction'));
+            })->name('show');
+            
+            Route::post('/{transaction}/approve', function ($transaction) {
+                // Implementa approvazione transazione
+                return back()->with('success', 'Transazione approvata.');
+            })->name('approve');
+            
+            Route::post('/{transaction}/reject', function ($transaction) {
+                // Implementa rifiuto transazione
+                return back()->with('success', 'Transazione rifiutata.');
+            })->name('reject');
+        });
+
+        // GESTIONE CONTI
+        Route::prefix('accounts')->name('accounts.')->group(function () {
+            Route::get('/', function () {
+                $accounts = App\Models\Account::with('user')->paginate(20);
+                return view('admin.accounts.index', compact('accounts'));
+            })->name('index');
+            
+            Route::get('/{account}', function (App\Models\Account $account) {
+                return view('admin.accounts.show', compact('account'));
+            })->name('show');
+            
+            Route::post('/{account}/freeze', function (App\Models\Account $account) {
+                $account->update(['is_active' => false]);
+                return back()->with('success', 'Conto bloccato con successo.');
+            })->name('freeze');
+            
+            Route::post('/{account}/unfreeze', function (App\Models\Account $account) {
+                $account->update(['is_active' => true]);
+                return back()->with('success', 'Conto sbloccato con successo.');
+            })->name('unfreeze');
+        });
+
+        // AUDIT E LOG
+        Route::prefix('audit')->name('audit.')->group(function () {
+            Route::get('/', function () {
+                $logs = App\Models\ActivityLog::with('user')->latest()->paginate(50);
+                return view('admin.audit.index', compact('logs'));
+            })->name('index');
+            
+            Route::get('/user/{user}', function (App\Models\User $user) {
+                $logs = $user->activityLogs()->latest()->paginate(50);
+                return view('admin.audit.user', compact('user', 'logs'));
+            })->name('user');
+        });
+
+        // IMPOSTAZIONI SISTEMA
+        Route::prefix('settings')->name('settings.')->group(function () {
+            Route::get('/', function () {
+                return view('admin.settings.index');
+            })->name('index');
+            
+            Route::get('/limits', function () {
+                return view('admin.settings.limits');
+            })->name('limits');
+            
+            Route::get('/notifications', function () {
+                return view('admin.settings.notifications');
+            })->name('notifications');
+            
+            Route::get('/security', function () {
+                return view('admin.settings.security');
+            })->name('security');
         });
     });
 
