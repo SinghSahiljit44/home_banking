@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
-use App\Services\OtpService;
 use App\Services\TransactionService;
 use App\Models\Account;
 use Illuminate\Http\Request;
@@ -12,12 +11,10 @@ use Illuminate\Support\Facades\Validator;
 
 class TransferController extends Controller
 {
-    protected $otpService;
     protected $transactionService;
 
-    public function __construct(OtpService $otpService, TransactionService $transactionService)
+    public function __construct(TransactionService $transactionService)
     {
-        $this->otpService = $otpService;
         $this->transactionService = $transactionService;
     }
 
@@ -39,10 +36,7 @@ class TransferController extends Controller
     }
 
     /**
-     * Elabora i dati del bonifico e richiede OTP
-     */
-/**
-     * Elabora i dati del bonifico e richiede OTP
+     * Elabora e completa direttamente il bonifico
      */
     public function store(Request $request)
     {
@@ -98,59 +92,15 @@ class TransferController extends Controller
             return back()->withErrors(['recipient_iban' => 'Non puoi inviare denaro al tuo stesso conto.'])->withInput();
         }
 
-        // Salva i dati del bonifico in sessione
-        session([
-            'transfer_data' => [
-                'recipient_iban' => $request->recipient_iban,
-                'amount' => $request->amount,
-                'description' => $request->description,
-                'beneficiary_name' => $request->beneficiary_name,
-            ]
-        ]);
-
-        // Genera OTP
-        $this->otpService->generateOtp($user, 'transfer');
-
-        return view('client.transfer.otp', [
-            'transfer_data' => session('transfer_data'),
-            'account' => $account,
-            'development_otp' => app()->environment('local') ? $this->otpService->getLastOtpForDevelopment($user) : null
-        ]);
-    }
-
-    /**
-     * Conferma il bonifico con OTP
-     */
-    public function confirm(Request $request)
-        {
-            $request->validate([
-                'otp' => 'required|string|size:6'
-            ]);
-
-            $user = Auth::user();
-            $transferData = session('transfer_data');
-
-            if (!$transferData) {
-                return redirect()->route('client.transfer.create')
-                    ->withErrors(['general' => 'Dati del bonifico non trovati. Riprovare.']);
-            }
-
-            // Verifica OTP
-            if (!$this->otpService->verifyOtp($user, $request->otp, 'transfer')) {
-                return back()->withErrors(['otp' => 'Codice OTP non valido o scaduto.']);
-            }
-
-            // Esegui il bonifico
+        try {
+            // Esegui direttamente il bonifico
             $result = $this->transactionService->processBonifico(
-                $user->account,
-                $transferData['recipient_iban'],
-                $transferData['amount'],
-                $transferData['description'],
-                $transferData['beneficiary_name']
+                $account,
+                $request->recipient_iban,
+                $request->amount,
+                $request->description,
+                $request->beneficiary_name
             );
-
-            // Rimuovi i dati dalla sessione
-            session()->forget('transfer_data');
 
             if ($result['success']) {
                 return view('client.transfer.success', [
@@ -162,16 +112,24 @@ class TransferController extends Controller
                 return redirect()->route('client.transfer.create')
                     ->withErrors(['general' => $result['message']]);
             }
-        }
 
+        } catch (\Exception $e) {
+            \Log::error('Transfer processing failed:', [
+                'error' => $e->getMessage(),
+                'user_id' => $user->id,
+                'amount' => $request->amount
+            ]);
+
+            return back()->withErrors(['general' => 'Errore durante l\'elaborazione del bonifico. Riprova più tardi.'])->withInput();
+        }
+    }
 
     /**
-     * Cancella il bonifico in corso
+     * Cancella il bonifico in corso (ora redirecta semplicemente)
      */
     public function cancel()
     {
-        session()->forget('transfer_data');
         return redirect()->route('client.transfer.create')
-            ->with('success', 'Bonifico annullato.');
+            ->with('info', 'Operazione annullata.');
     }
 }

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
-use App\Services\OtpService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -12,20 +11,13 @@ use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
-    protected $otpService;
-
-    public function __construct(OtpService $otpService)
-    {
-        $this->otpService = $otpService;
-    }
-
     /**
      * Mostra i dati del profilo
      */
     public function show()
     {
         $user = Auth::user();
-        return view('profile.show', compact('user')); // Cambiato da 'client.profile.show' a 'profile.show'
+        return view('profile.show', compact('user'));
     }
 
     /**
@@ -34,11 +26,11 @@ class ProfileController extends Controller
     public function edit()
     {
         $user = Auth::user();
-        return view('profile.edit', compact('user')); // Cambiato da 'client.profile.edit' a 'profile.edit'
+        return view('profile.edit', compact('user'));
     }
 
     /**
-     * Aggiorna i dati personali
+     * Aggiorna i dati personali direttamente
      */
     public function update(Request $request)
     {
@@ -56,82 +48,43 @@ class ProfileController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        $changes = [];
-        
-        // Verifica cosa è cambiato
-        if ($user->first_name !== $request->first_name) {
-            $changes['first_name'] = $request->first_name;
-        }
-        if ($user->last_name !== $request->last_name) {
-            $changes['last_name'] = $request->last_name;
-        }
-        if ($user->email !== $request->email) {
-            $changes['email'] = $request->email;
-        }
-        if ($user->phone !== $request->phone) {
-            $changes['phone'] = $request->phone;
-        }
-        if ($user->address !== $request->address) {
-            $changes['address'] = $request->address;
+        // Prepara i dati per l'aggiornamento
+        $updateData = [
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'address' => $request->address,
+        ];
+
+        // Controlla se ci sono stati cambiamenti
+        $hasChanges = false;
+        foreach ($updateData as $key => $value) {
+            if ($user->$key != $value) {
+                $hasChanges = true;
+                break;
+            }
         }
 
-        if (empty($changes)) {
-            return back()->withErrors(['general' => 'Nessuna modifica rilevata.']);
+        if (!$hasChanges) {
+            return back()->with('info', 'Nessuna modifica rilevata.');
         }
 
-        // Salva le modifiche in sessione per la conferma OTP
-        session([
-            'profile_changes' => $changes,
-            'profile_change_confirmed' => false
-        ]);
+        try {
+            // Aggiorna direttamente i dati
+            $user->update($updateData);
 
-        // Se cambia l'email, richiedi OTP
-        if (isset($changes['email'])) {
-            $this->otpService->generateOtp($user, 'profile_change');
-            
-            return view('profile.confirm-otp', [
-                'changes' => $changes,
-                'development_otp' => app()->environment('local') ? $this->otpService->getLastOtpForDevelopment($user) : null
+            return redirect()->route('client.profile.show')
+                ->with('success', 'Dati personali aggiornati con successo.');
+
+        } catch (\Exception $e) {
+            \Log::error('Profile update failed:', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
             ]);
+
+            return back()->withErrors(['general' => 'Errore durante l\'aggiornamento del profilo.'])->withInput();
         }
-
-        // Altrimenti applica direttamente le modifiche
-        $user->update($changes);
-
-        return redirect()->route('client.profile.show')
-            ->with('success', 'Dati personali aggiornati con successo.');
-    }
-
-    /**
-     * Conferma le modifiche con OTP
-     */
-    public function confirmChanges(Request $request)
-    {
-        $request->validate([
-            'otp' => 'required|string|size:6'
-        ]);
-
-        $user = Auth::user();
-        $changes = session('profile_changes');
-
-        if (!$changes) {
-            return redirect()->route('client.profile.edit')
-                ->withErrors(['general' => 'Sessione scaduta. Riprovare.']);
-        }
-
-        // Verifica OTP
-        if (!$this->otpService->verifyOtp($user, $request->otp, 'profile_change')) {
-            return back()->withErrors(['otp' => 'Codice OTP non valido o scaduto.']);
-        }
-
-        // Applica le modifiche
-        $user->update($changes);
-
-        // Pulisci la sessione
-        session()->forget(['profile_changes', 'profile_change_confirmed']);
-
-        return redirect()->route('client.profile.show')
-            ->with('success', 'Dati personali aggiornati con successo.');
     }
 
     /**
@@ -139,11 +92,11 @@ class ProfileController extends Controller
      */
     public function showChangePassword()
     {
-        return view('profile.change-password'); // Cambiato da 'client.profile.change-password' a 'profile.change-password'
+        return view('profile.change-password');
     }
 
     /**
-     * Cambia la password
+     * Cambia la password direttamente
      */
     public function changePassword(Request $request)
     {
@@ -168,58 +121,29 @@ class ProfileController extends Controller
             return back()->withErrors(['new_password' => 'La nuova password deve essere diversa da quella attuale.']);
         }
 
-        // Genera OTP per conferma
-        $this->otpService->generateOtp($user, 'password_change');
-        
-        session([
-            'new_password' => Hash::make($request->new_password),
-        ]);
+        try {
+            // Aggiorna la password direttamente
+            $user->update(['password' => Hash::make($request->new_password)]);
 
-        return view('profile.confirm-password-otp', [
-            'development_otp' => app()->environment('local') ? $this->otpService->getLastOtpForDevelopment($user) : null
-        ]);
+            return redirect()->route('client.profile.show')
+                ->with('success', 'Password cambiata con successo.');
+
+        } catch (\Exception $e) {
+            \Log::error('Password change failed:', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return back()->withErrors(['general' => 'Errore durante il cambio password.']);
+        }
     }
 
     /**
-     * Conferma il cambio password con OTP
-     */
-    public function confirmPasswordChange(Request $request)
-    {
-        $request->validate([
-            'otp' => 'required|string|size:6'
-        ]);
-
-        $user = Auth::user();
-        $newPassword = session('new_password');
-
-        if (!$newPassword) {
-            return redirect()->route('client.profile.change-password')
-                ->withErrors(['general' => 'Sessione scaduta. Riprovare.']);
-        }
-
-        // Verifica OTP
-        if (!$this->otpService->verifyOtp($user, $request->otp, 'password_change')) {
-            return back()->withErrors(['otp' => 'Codice OTP non valido o scaduto.']);
-        }
-
-        // Aggiorna la password
-        $user->update(['password' => $newPassword]);
-
-        // Pulisci la sessione
-        session()->forget('new_password');
-
-        return redirect()->route('client.profile.show')
-            ->with('success', 'Password cambiata con successo.');
-    }
-
-    /**
-     * Cancella le modifiche in corso
+     * Cancella le modifiche in corso (non più necessario)
      */
     public function cancelChanges()
     {
-        session()->forget(['profile_changes', 'profile_change_confirmed', 'new_password']);
-        
         return redirect()->route('client.profile.show')
-            ->with('info', 'Modifiche annullate.');
+            ->with('info', 'Operazione annullata.');
     }
 }
