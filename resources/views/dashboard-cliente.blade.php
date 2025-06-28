@@ -80,18 +80,12 @@
                         <a href="{{ route('client.profile.show') }}" class="btn btn-warning">
                             <i class="fas fa-user me-2"></i>Il mio Profilo
                         </a>
-                        
-                        <button class="btn btn-secondary" disabled>
-                            <i class="fas fa-cog me-2"></i>Impostazioni
-                        </button>
                     </div>
                     @if(!Auth::user()->account || !Auth::user()->account->is_active)
                         <small class="text-muted mt-2 d-block">
                             <i class="fas fa-info-circle me-1"></i>
                             Alcune funzioni richiedono un conto attivo
                         </small>
-                    @else
-                        <small class="text-muted mt-2 d-block">Funzionalità in via di sviluppo</small>
                     @endif
                 </div>
             </div>

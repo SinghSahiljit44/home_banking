@@ -218,12 +218,19 @@
                 </div>
 
                 <!-- Paginazione -->
-                <div class="d-flex justify-content-between align-items-center mt-3">
-                    <div class="text-muted">
-                        Showing {{ $transactions->firstItem() }} to {{ $transactions->lastItem() }} of {{ $transactions->total() }} results
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-3 gap-2">
+                    <div class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Visualizzati {{ $transactions->firstItem() ?? 0 }} - {{ $transactions->lastItem() ?? 0 }} 
+                        di {{ $transactions->total() }} movimenti
                     </div>
-                    <div>
-                        {{ $transactions->links() }}
+                    <div class="d-flex align-items-center gap-2">
+                        @if($transactions->hasPages())
+                            <small class="text-muted me-2">Pagina:</small>
+                            <nav aria-label="Paginazione movimenti">
+                                {{ $transactions->links('pagination::bootstrap-4') }}
+                            </nav>
+                        @endif
                     </div>
                 </div>
             @else

@@ -106,16 +106,9 @@
                             <i class="fas fa-key me-2"></i>Cambia Password
                         </a>
                         <button class="btn btn-info" disabled>
-                            <i class="fas fa-question-circle me-2"></i>Domande Sicurezza
-                        </button>
-                        <button class="btn btn-secondary" disabled>
-                            <i class="fas fa-mobile-alt me-2"></i>Autenticazione 2FA
+                            <i class="fas fa-question-circle me-2"></i>Domande di Sicurezza
                         </button>
                     </div>
-                    <small class="text-muted mt-2 d-block">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Alcune funzionalità sono in sviluppo
-                    </small>
                 </div>
             </div>
 
