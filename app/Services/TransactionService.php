@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Log;
 
 class TransactionService
 {
-    /**
-     * Effettua un bonifico tra due conti
+     /**
+     * Effettua un bonifico tra due conti - VERSIONE CORRETTA
      */
     public function processBonifico(
         Account $fromAccount, 
@@ -21,15 +21,28 @@ class TransactionService
         string $beneficiary = null
     ): array {
         try {
+            \Log::info('processBonifico started', [
+                'from_account_id' => $fromAccount->id,
+                'to_iban' => $toIban,
+                'amount' => $amount,
+                'description' => $description
+            ]);
+
             DB::beginTransaction();
 
             // Verifica saldo sufficiente
             if (!$fromAccount->hasSufficientBalance($amount)) {
+                \Log::error('Insufficient balance', [
+                    'required' => $amount,
+                    'available' => $fromAccount->balance
+                ]);
                 return [
                     'success' => false,
                     'message' => 'Saldo insufficiente per completare l\'operazione.'
                 ];
             }
+
+            \Log::info('Balance check passed');
 
             // Trova il conto di destinazione
             $toAccount = Account::where('iban', $toIban)->first();
@@ -44,17 +57,22 @@ class TransactionService
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Errore durante il bonifico: ' . $e->getMessage());
+            \Log::error('Errore durante il bonifico:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
             
             return [
                 'success' => false,
-                'message' => 'Errore tecnico durante l\'elaborazione del bonifico.'
+                'message' => 'Errore tecnico: ' . $e->getMessage()
             ];
         }
     }
 
     /**
-     * Bonifico tra conti interni
+     * Bonifico interno tra conti della stessa banca
      */
     private function processInternalBonifico(Account $fromAccount, Account $toAccount, float $amount, string $description): array
     {
@@ -66,7 +84,11 @@ class TransactionService
             ];
         }
 
-        $referenceCode = 'TXN' . strtoupper(uniqid());
+        // Genera codice di riferimento univoco
+        $referenceCode = $this->generateUniqueReferenceCode();
+
+        // Pulisci la descrizione da caratteri problematici
+        $cleanDescription = $this->cleanDescription($description);
 
         // Crea transazione in uscita
         $outTransaction = Transaction::create([
@@ -74,7 +96,7 @@ class TransactionService
             'to_account_id' => $toAccount->id,
             'amount' => $amount,
             'type' => 'transfer_out',
-            'description' => $description,
+            'description' => $cleanDescription,
             'reference_code' => $referenceCode,
             'status' => 'completed'
         ]);
@@ -85,8 +107,8 @@ class TransactionService
             'to_account_id' => $toAccount->id,
             'amount' => $amount,
             'type' => 'transfer_in',
-            'description' => $description,
-            'reference_code' => $referenceCode,
+            'description' => $cleanDescription,
+            'reference_code' => $referenceCode . '_IN', // Codice diverso per evitare duplicati
             'status' => 'completed'
         ]);
 
@@ -104,12 +126,20 @@ class TransactionService
         ];
     }
 
-    /**
+     /**
      * Bonifico esterno (simulato)
      */
     private function processExternalBonifico(Account $fromAccount, string $toIban, float $amount, string $description, string $beneficiary = null): array
     {
-        $referenceCode = 'EXT' . strtoupper(uniqid());
+        // Genera codice di riferimento univoco
+        $referenceCode = $this->generateUniqueReferenceCode('EXT');
+
+        // Pulisci la descrizione
+        $cleanDescription = $this->cleanDescription($description);
+        if ($beneficiary) {
+            $cleanDescription .= ' - Beneficiario: ' . $this->cleanDescription($beneficiary);
+        }
+        $cleanDescription .= ' - IBAN: ' . $toIban;
 
         // Crea transazione in uscita
         $transaction = Transaction::create([
@@ -117,25 +147,47 @@ class TransactionService
             'to_account_id' => null, // Conto esterno
             'amount' => $amount,
             'type' => 'transfer_out',
-            'description' => $description . ($beneficiary ? " - Beneficiario: {$beneficiary}" : '') . " - IBAN: {$toIban}",
+            'description' => $cleanDescription,
             'reference_code' => $referenceCode,
-            'status' => 'pending' // I bonifici esterni richiedono elaborazione
+            'status' => 'completed' // Per test, completa subito
         ]);
 
-        // Blocca temporaneamente i fondi
+        // Aggiorna saldo
         $fromAccount->decrement('balance', $amount);
-
-        // Simula l'elaborazione (in produzione sarebbe asincrona)
-        // Dopo qualche secondo, la transazione diventerebbe 'completed'
         
         DB::commit();
 
         return [
             'success' => true,
-            'message' => 'Bonifico inviato. L\'operazione sarà elaborata entro 1-2 giorni lavorativi.',
+            'message' => 'Bonifico inviato con successo.',
             'reference_code' => $referenceCode,
             'transaction' => $transaction
         ];
+    }
+
+     /**
+     * Genera un codice di riferimento univoco
+     */
+    private function generateUniqueReferenceCode(string $prefix = 'TXN'): string
+    {
+        do {
+            $referenceCode = $prefix . strtoupper(uniqid()) . rand(100, 999);
+        } while (Transaction::where('reference_code', $referenceCode)->exists());
+        
+        return $referenceCode;
+    }
+
+    /**
+     * Pulisce la descrizione da caratteri problematici
+     */
+    private function cleanDescription(string $description): string
+    {
+        // Converte caratteri speciali in equivalenti ASCII
+        $description = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $description);
+        // Rimuove caratteri non stampabili
+        $description = preg_replace('/[^\x20-\x7E]/', '', $description);
+        // Limita la lunghezza
+        return substr(trim($description), 0, 250);
     }
 
     /**
