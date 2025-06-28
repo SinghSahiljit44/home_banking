@@ -119,21 +119,30 @@
                                 </thead>
                                 <tbody>
                                     @foreach(Auth::user()->account->allTransactions()->take(10)->get() as $transaction)
+                                    @php
+                                        $account = Auth::user()->account;
+                                        $isIncoming = $account->isIncomingTransaction($transaction);
+                                        $isOutgoing = $account->isOutgoingTransaction($transaction);
+                                        $amount = $account->getTransactionAmount($transaction);
+                                        $description = $account->getTransactionDescription($transaction);
+                                    @endphp
                                     <tr>
                                         <td>{{ $transaction->created_at->format('d/m/Y H:i') }}</td>
+                                        <td>{{ $description }}</td>
                                         <td>
-                                            {{ $transaction->description ?? 'Transazione ' . ucfirst(str_replace('_', ' ', $transaction->type)) }}
-                                        </td>
-                                        <td>
-                                            @if($transaction->from_account_id === Auth::user()->account->id)
+                                            @if($isOutgoing)
                                                 <span class="text-danger">
                                                     <i class="fas fa-arrow-down me-1"></i>
-                                                    -€{{ number_format($transaction->amount, 2, ',', '.') }}
+                                                    €{{ number_format($amount, 2, ',', '.') }}
                                                 </span>
-                                            @else
+                                            @elseif($isIncoming)
                                                 <span class="text-success">
                                                     <i class="fas fa-arrow-up me-1"></i>
-                                                    +€{{ number_format($transaction->amount, 2, ',', '.') }}
+                                                    +€{{ number_format($amount, 2, ',', '.') }}
+                                                </span>
+                                            @else
+                                                <span class="text-muted">
+                                                    €{{ number_format($transaction->amount, 2, ',', '.') }}
                                                 </span>
                                             @endif
                                         </td>
@@ -152,7 +161,9 @@
                         </div>
                         @if(Auth::user()->account->allTransactions()->count() > 10)
                             <div class="text-center mt-3">
-                                <button class="btn btn-outline-light btn-sm" disabled>Vedi tutte le transazioni</button>
+                                <a href="{{ route('client.account.show') }}" class="btn btn-outline-light btn-sm">
+                                    <i class="fas fa-eye me-1"></i>Vedi tutte le transazioni
+                                </a>
                             </div>
                         @endif
                     @else

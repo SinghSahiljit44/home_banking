@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Log;
 
 class TransactionService
 {
-     /**
-     * Effettua un bonifico tra due conti - VERSIONE CORRETTA
+    /**
+     * Effettua un bonifico tra due conti - VERSIONE CORRETTA SENZA DUPLICATI
      */
     public function processBonifico(
         Account $fromAccount, 
@@ -72,7 +72,7 @@ class TransactionService
     }
 
     /**
-     * Bonifico interno tra conti della stessa banca
+     * Bonifico interno tra conti della stessa banca - CORRETTO
      */
     private function processInternalBonifico(Account $fromAccount, Account $toAccount, float $amount, string $description): array
     {
@@ -90,25 +90,15 @@ class TransactionService
         // Pulisci la descrizione da caratteri problematici
         $cleanDescription = $this->cleanDescription($description);
 
-        // Crea transazione in uscita
-        $outTransaction = Transaction::create([
+        // CAMBIAMENTO PRINCIPALE: Crea una SOLA transazione per il bonifico interno
+        // La transazione viene vista dal punto di vista del mittente
+        $transaction = Transaction::create([
             'from_account_id' => $fromAccount->id,
             'to_account_id' => $toAccount->id,
             'amount' => $amount,
-            'type' => 'transfer_out',
+            'type' => 'transfer_out', // Dal punto di vista del mittente
             'description' => $cleanDescription,
             'reference_code' => $referenceCode,
-            'status' => 'completed'
-        ]);
-
-        // Crea transazione in entrata
-        $inTransaction = Transaction::create([
-            'from_account_id' => $fromAccount->id,
-            'to_account_id' => $toAccount->id,
-            'amount' => $amount,
-            'type' => 'transfer_in',
-            'description' => $cleanDescription,
-            'reference_code' => $referenceCode . '_IN', // Codice diverso per evitare duplicati
             'status' => 'completed'
         ]);
 
@@ -122,11 +112,11 @@ class TransactionService
             'success' => true,
             'message' => 'Bonifico completato con successo.',
             'reference_code' => $referenceCode,
-            'transaction' => $outTransaction
+            'transaction' => $transaction
         ];
     }
 
-     /**
+    /**
      * Bonifico esterno (simulato)
      */
     private function processExternalBonifico(Account $fromAccount, string $toIban, float $amount, string $description, string $beneficiary = null): array
@@ -149,7 +139,7 @@ class TransactionService
             'type' => 'transfer_out',
             'description' => $cleanDescription,
             'reference_code' => $referenceCode,
-            'status' => 'completed' // Per test, completa subito
+            'status' => 'completed'
         ]);
 
         // Aggiorna saldo
@@ -165,7 +155,7 @@ class TransactionService
         ];
     }
 
-     /**
+    /**
      * Genera un codice di riferimento univoco
      */
     private function generateUniqueReferenceCode(string $prefix = 'TXN'): string
