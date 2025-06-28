@@ -28,7 +28,7 @@
 
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
-                        <strong>Per la tua sicurezza:</strong> Dopo aver inserito la nuova password, ti verrà richiesto un codice OTP per confermare il cambio.
+                        <strong>Per la tua sicurezza:</strong> Dopo aver inserito la nuova password, il cambio sarà effettuato immediatamente.
                     </div>
 
                     <form method="POST" action="{{ route('client.profile.change-password.store') }}" id="passwordForm">

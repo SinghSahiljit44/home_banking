@@ -71,7 +71,6 @@
                             @error('email')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <div class="form-text">Se cambi l'email ti verrà richiesto un codice OTP</div>
                         </div>
 
                         <div class="mb-3">

@@ -136,7 +136,7 @@
                                 <i class="fas fa-times me-1"></i>Annulla
                             </a>
                             <button type="submit" class="btn btn-success" id="submitBtn">
-                                <i class="fas fa-arrow-right me-1"></i>Procedi con OTP
+                                <i class="fas fa-check me-1"></i>Esegui Bonifico
                             </button>
                         </div>
                     </form>

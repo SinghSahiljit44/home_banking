@@ -55,11 +55,6 @@ class User extends Authenticatable
         return $this->hasOne(Account::class);
     }
 
-    public function otpTokens(): HasMany
-    {
-        return $this->hasMany(OtpToken::class);
-    }
-
     public function securityQuestion(): HasOne
     {
         return $this->hasOne(SecurityQuestion::class);
