@@ -302,8 +302,98 @@ class AdminTransactionController extends Controller
     }
 
     /**
-     * Esporta transazioni in CSV
+     * Blocca/Sblocca un utente (Admin può gestire account utenti)
      */
+    public function toggleUserStatus(User $user)
+    {
+        if ($user->isAdmin() && $user->id !== Auth::id()) {
+            return back()->withErrors(['error' => 'Non puoi modificare lo stato di altri amministratori.']);
+        }
+
+        if ($user->id === Auth::id()) {
+            return back()->withErrors(['error' => 'Non puoi modificare il tuo stesso stato.']);
+        }
+
+        $user->update(['is_active' => !$user->is_active]);
+
+        $status = $user->is_active ? 'attivato' : 'disattivato';
+        
+        // Log dell'operazione
+        \Log::info('User status changed by admin:', [
+            'admin_id' => Auth::id(),
+            'admin_name' => Auth::user()->full_name,
+            'target_user_id' => $user->id,
+            'target_user_name' => $user->full_name,
+            'new_status' => $user->is_active,
+        ]);
+
+        return back()->with('success', "Utente {$status} con successo.");
+    }
+
+    /**
+     * Reset completo credenziali utente (Admin può fare per tutti)
+     */
+    public function resetUserCredentials(Request $request, User $user)
+    {
+        $validator = Validator::make($request->all(), [
+            'new_username' => 'nullable|string|max:50|unique:users,username,' . $user->id,
+            'new_password' => 'nullable|string|min:8',
+            'reason' => 'required|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        if ($user->isAdmin() && $user->id !== Auth::id()) {
+            return back()->withErrors(['error' => 'Non puoi modificare le credenziali di altri amministratori.']);
+        }
+
+        $changes = [];
+
+        try {
+            // Cambia username se fornito
+            if ($request->filled('new_username') && $request->new_username !== $user->username) {
+                $oldUsername = $user->username;
+                $user->username = $request->new_username;
+                $changes[] = "Username: {$oldUsername} → {$request->new_username}";
+            }
+
+            // Cambia password se fornita
+            if ($request->filled('new_password')) {
+                $user->password = Hash::make($request->new_password);
+                $changes[] = "Password modificata";
+            }
+
+            if (empty($changes)) {
+                return back()->withErrors(['error' => 'Nessuna modifica specificata.']);
+            }
+
+            $user->save();
+
+            // Log dell'operazione
+            \Log::info('User credentials reset by admin:', [
+                'admin_id' => Auth::id(),
+                'admin_name' => Auth::user()->full_name,
+                'target_user_id' => $user->id,
+                'target_user_name' => $user->full_name,
+                'changes' => $changes,
+                'reason' => $request->reason,
+            ]);
+
+            $message = "Credenziali aggiornate: " . implode(', ', $changes);
+            return back()->with('success', $message);
+
+        } catch (\Exception $e) {
+            \Log::error('Admin credentials reset failed:', [
+                'admin_id' => Auth::id(),
+                'target_user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['general' => 'Errore durante l\'aggiornamento delle credenziali.']);
+        }
+    }
     public function exportCsv(Request $request)
     {
         $query = Transaction::with(['fromAccount.user', 'toAccount.user']);

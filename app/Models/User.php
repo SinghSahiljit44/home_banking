@@ -76,7 +76,7 @@ class User extends Authenticatable
         return $this->hasMany(ActivityLog::class);
     }
 
-    // NUOVE RELAZIONI PER EMPLOYEE-CLIENT ASSIGNMENTS
+    // RELAZIONI PER EMPLOYEE-CLIENT ASSIGNMENTS
 
     /**
      * Clienti assegnati a questo employee
@@ -124,7 +124,7 @@ class User extends Authenticatable
         return $this->hasMany(EmployeeClientAssignment::class, 'assigned_by');
     }
 
-    // Metodi helper per i ruoli (esistenti)
+    // Metodi helper per i ruoli
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
@@ -140,7 +140,7 @@ class User extends Authenticatable
         return $this->role === 'employee';
     }
 
-    // NUOVI METODI HELPER PER PERMISSIONS
+    // METODI HELPER PER PERMISSIONS AGGIORNATI
 
     /**
      * Verifica se questo employee può gestire il cliente specificato
@@ -183,7 +183,7 @@ class User extends Authenticatable
     }
 
     /**
-     * NUOVO: Verifica se questo employee può fare depositi per il cliente
+     * Verifica se questo employee può fare depositi per il cliente
      * Employee può fare depositi per TUTTI i clienti (secondo documento)
      */
     public function canMakeDepositsForClient(User $client): bool
@@ -200,7 +200,7 @@ class User extends Authenticatable
     }
 
     /**
-     * NUOVO: Verifica se può recuperare credenziali del cliente
+     * Verifica se può recuperare credenziali del cliente
      * Employee può recuperare credenziali SOLO per clienti assegnati
      */
     public function canRecoverCredentialsForClient(User $client): bool
@@ -214,6 +214,62 @@ class User extends Authenticatable
         }
 
         return false;
+    }
+
+    /**
+     * NUOVO: Verifica se può gestire le credenziali di un utente
+     */
+    public function canManageUserCredentials(User $targetUser): bool
+    {
+        if ($this->isAdmin()) {
+            // Admin può gestire tutti tranne altri admin (eccetto se stesso per alcune operazioni)
+            if ($targetUser->isAdmin()) {
+                return $this->id === $targetUser->id; // Solo le proprie credenziali di admin
+            }
+            return true;
+        }
+
+        if ($this->isEmployee()) {
+            // Employee può gestire solo clienti assegnati
+            return $targetUser->isClient() && $this->canManageClient($targetUser);
+        }
+
+        // I clienti possono gestire solo le proprie credenziali
+        return $this->id === $targetUser->id;
+    }
+
+    /**
+     * NUOVO: Verifica se può vedere le transazioni di un utente
+     */
+    public function canViewUserTransactions(User $targetUser): bool
+    {
+        if ($this->isAdmin()) {
+            return true; // Admin vede tutte le transazioni
+        }
+
+        if ($this->isEmployee()) {
+            return $targetUser->isClient() && $this->canManageClient($targetUser);
+        }
+
+        // Cliente vede solo le proprie transazioni
+        return $this->id === $targetUser->id;
+    }
+
+    /**
+     * NUOVO: Verifica se può bloccare/sbloccare un utente
+     */
+    public function canToggleUserStatus(User $targetUser): bool
+    {
+        if (!$this->isAdmin()) {
+            return false; // Solo admin può gestire stati utenti
+        }
+
+        // Admin non può bloccare altri admin (eccetto se stesso in alcuni casi)
+        if ($targetUser->isAdmin()) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -242,7 +298,7 @@ class User extends Authenticatable
         }
 
         if ($this->isEmployee()) {
-            // Employee vede solo transazioni dei clienti assegnati - CORREZIONE
+            // Employee vede solo transazioni dei clienti assegnati
             $clientIds = $this->assignedClients()->pluck('users.id');
             $accountIds = Account::whereIn('user_id', $clientIds)->pluck('id');
             
@@ -261,7 +317,7 @@ class User extends Authenticatable
     }
 
     /**
-     * NUOVO: Ottieni tutti i clienti per cui può fare depositi
+     * Ottieni tutti i clienti per cui può fare depositi
      */
     public function getClientsForDeposits()
     {
@@ -278,7 +334,7 @@ class User extends Authenticatable
     }
 
     /**
-     * NUOVO: Ottieni clienti per cui può fare bonifici
+     * Ottieni clienti per cui può fare bonifici
      */
     public function getClientsForTransfers()
     {
@@ -294,13 +350,8 @@ class User extends Authenticatable
         return collect();
     }
 
-    public function getFullNameAttribute(): string
-    {
-        return trim($this->first_name . ' ' . $this->last_name);
-    }
-
     /**
-     * NUOVO: Ottieni clienti per cui può recuperare credenziali
+     * Ottieni clienti per cui può recuperare credenziali
      */
     public function getClientsForCredentialRecovery()
     {
@@ -317,6 +368,83 @@ class User extends Authenticatable
         }
 
         return collect();
+    }
+
+    /**
+     * NUOVO: Ottieni utenti che questo utente può gestire
+     */
+    public function getManageableUsers()
+    {
+        if ($this->isAdmin()) {
+            // Admin può gestire tutti tranne altri admin
+            return User::where('role', '!=', 'admin')
+                      ->orWhere('id', $this->id) // Può gestire se stesso
+                      ->get();
+        }
+
+        if ($this->isEmployee()) {
+            // Employee può gestire solo clienti assegnati + se stesso
+            return $this->assignedClients->push($this);
+        }
+
+        // Cliente può gestire solo se stesso
+        return collect([$this]);
+    }
+
+    /**
+     * NUOVO: Verifica se è il manager di questo cliente
+     */
+    public function isManagerOf(User $client): bool
+    {
+        if (!$this->isEmployee() || !$client->isClient()) {
+            return false;
+        }
+
+        return $this->assignedClients()->where('users.id', $client->id)->exists();
+    }
+
+    /**
+     * NUOVO: Ottieni statistiche per questo utente
+     */
+    public function getStatsForRole(): array
+    {
+        $stats = [];
+
+        if ($this->isAdmin()) {
+            $stats = [
+                'total_users' => User::count(),
+                'total_clients' => User::where('role', 'client')->count(),
+                'total_employees' => User::where('role', 'employee')->count(),
+                'total_transactions' => Transaction::count(),
+                'total_accounts' => Account::count(),
+                'total_balance' => Account::sum('balance'),
+            ];
+        } elseif ($this->isEmployee()) {
+            $clientIds = $this->assignedClients()->pluck('users.id');
+            $accountIds = Account::whereIn('user_id', $clientIds)->pluck('id');
+            
+            $stats = [
+                'assigned_clients' => $this->assignedClients()->count(),
+                'client_transactions' => Transaction::whereIn('from_account_id', $accountIds)
+                                                  ->orWhereIn('to_account_id', $accountIds)
+                                                  ->count(),
+                'client_total_balance' => Account::whereIn('user_id', $clientIds)->sum('balance'),
+            ];
+        } elseif ($this->isClient() && $this->account) {
+            $stats = [
+                'account_balance' => $this->account->balance,
+                'total_transactions' => $this->account->allTransactions()->count(),
+                'incoming_amount' => $this->account->incomingTransactions()->sum('amount'),
+                'outgoing_amount' => $this->account->outgoingTransactions()->sum('amount'),
+            ];
+        }
+
+        return $stats;
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        return trim($this->first_name . ' ' . $this->last_name);
     }
 
     /**

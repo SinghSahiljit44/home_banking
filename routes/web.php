@@ -12,6 +12,7 @@ use App\Http\Controllers\Client\SecurityQuestionController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminAssignmentsController;
+use App\Http\Controllers\Admin\AdminTransactionController;
 use App\Http\Controllers\Admin\PasswordRecoveryController;
 use App\Http\Controllers\Employee\EmployeeDashboardController;
 use App\Http\Controllers\Employee\EmployeeClientController;
@@ -295,25 +296,18 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/export/transactions', [App\Http\Controllers\Admin\ReportController::class, 'exportTransactions'])->name('export.transactions');
         });
 
-        // GESTIONE TRANSAZIONI
+        // GESTIONE TRANSAZIONI - AGGIORNATO CON CONTROLLER COMPLETO
         Route::prefix('transactions')->name('transactions.')->group(function () {
-            Route::get('/', function () {
-                return view('admin.transactions.index');
-            })->name('index');
+            Route::get('/', [AdminTransactionController::class, 'index'])->name('index');
+            Route::get('/{transaction}', [AdminTransactionController::class, 'show'])->name('show');
+            Route::post('/{transaction}/approve', [AdminTransactionController::class, 'approve'])->name('approve');
+            Route::post('/{transaction}/reject', [AdminTransactionController::class, 'reject'])->name('reject');
+            Route::post('/{transaction}/reverse', [AdminTransactionController::class, 'reverse'])->name('reverse');
+            Route::get('/export-csv', [AdminTransactionController::class, 'exportCsv'])->name('export-csv');
             
-            Route::get('/{transaction}', function ($transaction) {
-                return view('admin.transactions.show', compact('transaction'));
-            })->name('show');
-            
-            Route::post('/{transaction}/approve', function ($transaction) {
-                // Implementa approvazione transazione
-                return back()->with('success', 'Transazione approvata.');
-            })->name('approve');
-            
-            Route::post('/{transaction}/reject', function ($transaction) {
-                // Implementa rifiuto transazione
-                return back()->with('success', 'Transazione rifiutata.');
-            })->name('reject');
+            // BONIFICI PER CONTO DEI CLIENTI - NUOVO
+            Route::get('/create-transfer/{client}', [AdminTransactionController::class, 'showCreateTransferForm'])->name('create-transfer-form');
+            Route::post('/create-transfer/{client}', [AdminTransactionController::class, 'createTransferForClient'])->name('create-transfer');
         });
 
         // GESTIONE CONTI
@@ -365,7 +359,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{client}/deposit', [EmployeeClientController::class, 'deposit'])->name('deposit');
         });
 
-        // DEPOSITI UNIVERSALI (tutti i clienti) - NUOVO
+        // DEPOSITI UNIVERSALI (tutti i clienti) - IMPLEMENTAZIONE COMPLETA
         Route::prefix('universal')->name('universal.')->group(function () {
             Route::get('/clients', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'showAllClients'])->name('clients');
             Route::post('/clients/{client}/deposit', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'depositToAnyClient'])->name('deposit');
