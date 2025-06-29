@@ -61,16 +61,6 @@ class User extends Authenticatable
         return $this->hasOne(SecurityQuestion::class);
     }
 
-    public function beneficiaries(): HasMany
-    {
-        return $this->hasMany(Beneficiary::class);
-    }
-
-    public function notifications(): HasMany
-    {
-        return $this->hasMany(Notification::class);
-    }
-
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class);
@@ -167,7 +157,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Verifica se questo employee può fare bonifici per il cliente
+     * AGGIORNATO: Verifica bonifici - Employee SOLO per assegnati
      */
     public function canMakeTransfersForClient(User $client): bool
     {
@@ -183,8 +173,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Verifica se questo employee può fare depositi per il cliente
-     * Employee può fare depositi per TUTTI i clienti (secondo documento)
+     * AGGIORNATO: Verifica depositi - Employee può fare per TUTTI
      */
     public function canMakeDepositsForClient(User $client): bool
     {
@@ -200,8 +189,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Verifica se può recuperare credenziali del cliente
-     * Employee può recuperare credenziali SOLO per clienti assegnati
+     * AGGIORNATO: Recupero credenziali - Employee SOLO per assegnati
      */
     public function canRecoverCredentialsForClient(User $client): bool
     {
@@ -214,6 +202,24 @@ class User extends Authenticatable
         }
 
         return false;
+    }
+
+    /**
+     * NUOVO: Verifica se può rimuovere un utente
+     */
+    public function canRemoveUser(User $targetUser): bool
+    {
+        if ($this->isAdmin()) {
+            // Admin può rimuovere tutti tranne altri admin e se stesso
+            return !$targetUser->isAdmin() && $this->id !== $targetUser->id;
+        }
+
+        if ($this->isEmployee()) {
+            // Employee può rimuovere solo clienti assegnati
+            return $targetUser->isClient() && $this->canManageClient($targetUser);
+        }
+
+        return false; // I clienti non possono rimuovere nessuno
     }
 
     /**
@@ -260,16 +266,17 @@ class User extends Authenticatable
      */
     public function canToggleUserStatus(User $targetUser): bool
     {
-        if (!$this->isAdmin()) {
-            return false; // Solo admin può gestire stati utenti
+        if ($this->isAdmin()) {
+            // Admin può gestire tutti tranne altri admin e se stesso
+            return !$targetUser->isAdmin() && $this->id !== $targetUser->id;
         }
 
-        // Admin non può bloccare altri admin (eccetto se stesso in alcuni casi)
-        if ($targetUser->isAdmin()) {
-            return false;
+        if ($this->isEmployee()) {
+            // Employee può gestire solo clienti assegnati
+            return $targetUser->isClient() && $this->canManageClient($targetUser);
         }
 
-        return true;
+        return false;
     }
 
     /**
@@ -317,7 +324,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Ottieni tutti i clienti per cui può fare depositi
+     * NUOVO: Ottieni tutti i clienti per cui può fare depositi
      */
     public function getClientsForDeposits()
     {
@@ -334,7 +341,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Ottieni clienti per cui può fare bonifici
+     * NUOVO: Ottieni clienti per cui può fare bonifici
      */
     public function getClientsForTransfers()
     {
@@ -351,7 +358,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Ottieni clienti per cui può recuperare credenziali
+     * NUOVO: Ottieni clienti per cui può recuperare credenziali
      */
     public function getClientsForCredentialRecovery()
     {

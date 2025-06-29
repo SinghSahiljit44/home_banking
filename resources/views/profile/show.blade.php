@@ -1,237 +1,186 @@
 @extends('layouts.bootstrap')
 
-@section('title', 'Il mio Profilo')
+@section('title', 'Il Mio Profilo')
 
 @section('content')
 <div class="container mt-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-user me-2"></i>Il mio Profilo</h2>
-                <a href="{{ route('dashboard.cliente') }}" class="btn btn-outline-light">
-                    <i class="fas fa-arrow-left me-1"></i>Torna alla Dashboard
-                </a>
-            </div>
-        </div>
-    </div>
-
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @if (session('info'))
-        <div class="alert alert-info alert-dismissible fade show" role="alert">
-            <i class="fas fa-info-circle me-2"></i>{{ session('info') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    <div class="row">
-        <!-- Informazioni Personali -->
-        <div class="col-lg-8">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
             <div class="card bg-transparent border-light">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5><i class="fas fa-id-card me-2"></i>Dati Personali</h5>
-                        <a href="{{ route('client.profile.edit') }}" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-edit me-1"></i>Modifica
-                        </a>
+                        <h4><i class="fas fa-user me-2"></i>Il Mio Profilo</h4>
+                        <div>
+                            <a href="{{ route('client.profile.edit') }}" class="btn btn-warning me-2">
+                                <i class="fas fa-edit me-1"></i>Modifica
+                            </a>
+                            @if(Auth::user()->isClient())
+                                <a href="{{ route('dashboard.cliente') }}" class="btn btn-outline-light">
+                                    <i class="fas fa-arrow-left me-1"></i>Dashboard
+                                </a>
+                            @elseif(Auth::user()->isEmployee())
+                                <a href="{{ route('dashboard.employee') }}" class="btn btn-outline-light">
+                                    <i class="fas fa-arrow-left me-1"></i>Dashboard
+                                </a>
+                            @else
+                                <a href="{{ route('dashboard.admin') }}" class="btn btn-outline-light">
+                                    <i class="fas fa-arrow-left me-1"></i>Dashboard
+                                </a>
+                            @endif
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label text-muted">Nome</label>
-                                <p class="h6">{{ $user->first_name }}</p>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label text-muted">Cognome</label>
-                                <p class="h6">{{ $user->last_name }}</p>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label text-muted">Username</label>
-                                <p class="h6">{{ $user->username }}</p>
-                            </div>
+                    @if (session('success'))
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label text-muted">Email</label>
-                                <p class="h6">
-                                    {{ $user->email }}
-                                    @if($user->email_verified_at)
-                                        <span class="badge bg-success ms-2">Verificata</span>
-                                    @else
-                                        <span class="badge bg-warning ms-2">Non Verificata</span>
-                                    @endif
-                                </p>
+                    @endif
+
+                    @if (session('info'))
+                        <div class="alert alert-info alert-dismissible fade show" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>{{ session('info') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
+                    <!-- Informazioni Base -->
+                    <div class="card bg-dark border-secondary mb-4">
+                        <div class="card-header">
+                            <h6><i class="fas fa-id-card me-2"></i>Informazioni Personali</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Nome Completo:</strong> {{ $user->full_name }}</p>
+                                    <p><strong>Username:</strong> {{ $user->username }}</p>
+                                    <p><strong>Email:</strong> {{ $user->email }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Telefono:</strong> {{ $user->phone ?: 'Non specificato' }}</p>
+                                    <p><strong>Ruolo:</strong> 
+                                        <span class="badge bg-{{ $user->role === 'admin' ? 'danger' : ($user->role === 'employee' ? 'warning' : 'success') }}">
+                                            {{ ucfirst($user->role) }}
+                                        </span>
+                                    </p>
+                                    <p><strong>Membro dal:</strong> {{ $user->created_at->format('d/m/Y') }}</p>
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label text-muted">Telefono</label>
-                                <p class="h6">{{ $user->phone ?: 'Non specificato' }}</p>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label text-muted">Data Registrazione</label>
-                                <p class="h6">{{ $user->created_at->format('d/m/Y H:i') }}</p>
-                            </div>
+                            @if($user->address)
+                                <div class="row">
+                                    <div class="col-12">
+                                        <p><strong>Indirizzo:</strong> {{ $user->address }}</p>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
 
-                    @if($user->address)
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="mb-3">
-                                    <label class="form-label text-muted">Indirizzo</label>
-                                    <p class="h6">{{ $user->address }}</p>
+                    <!-- Informazioni Conto (solo per clienti) -->
+                    @if($user->isClient() && $user->account)
+                        <div class="card bg-dark border-secondary mb-4">
+                            <div class="card-header">
+                                <h6><i class="fas fa-university me-2"></i>Il Mio Conto</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>Numero Conto:</strong> {{ $user->account->account_number }}</p>
+                                        <p><strong>IBAN:</strong> <span class="font-monospace">{{ $user->account->iban }}</span></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>Saldo:</strong> 
+                                            <span class="text-success h5">€{{ number_format($user->account->balance, 2, ',', '.') }}</span>
+                                        </p>
+                                        <p><strong>Stato:</strong> 
+                                            <span class="badge {{ $user->account->is_active ? 'bg-success' : 'bg-danger' }}">
+                                                {{ $user->account->is_active ? 'Attivo' : 'Sospeso' }}
+                                            </span>
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     @endif
-                </div>
-            </div>
-        </div>
 
-        <!-- Azioni Sicurezza -->
-        <div class="col-lg-4">
-            <div class="card bg-transparent border-light">
-                <div class="card-header">
-                    <h5><i class="fas fa-shield-alt me-2"></i>Sicurezza</h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="{{ route('client.profile.change-password') }}" class="btn btn-warning">
+                    <!-- Sicurezza -->
+                    <div class="card bg-dark border-secondary mb-4">
+                        <div class="card-header">
+                            <h6><i class="fas fa-shield-alt me-2"></i>Sicurezza</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Password:</strong> ••••••••</p>
+                                    <a href="{{ route('client.profile.change-password') }}" class="btn btn-sm btn-outline-warning">
+                                        <i class="fas fa-key me-1"></i>Cambia Password
+                                    </a>
+                                </div>
+                                <div class="col-md-6">
+                                    @if($user->isClient())
+                                        <p><strong>Domanda di Sicurezza:</strong> 
+                                            @if($user->securityQuestion)
+                                                <span class="text-success">Configurata</span>
+                                            @else
+                                                <span class="text-warning">Non configurata</span>
+                                            @endif
+                                        </p>
+                                        <a href="{{ route('client.security.questions') }}" class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-question-circle me-1"></i>Gestisci Sicurezza
+                                        </a>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Statistiche per Employee -->
+                    @if($user->isEmployee())
+                        <div class="card bg-dark border-secondary mb-4">
+                            <div class="card-header">
+                                <h6><i class="fas fa-chart-bar me-2"></i>Le Tue Statistiche</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4 text-center">
+                                        <h4 class="text-success">
+                                            {{ $user->assignedClients()->whereHas('account', function($q) { 
+                                                $q->where('is_active', true); 
+                                            })->count() }}
+                                        </h4>
+                                        <p class="mb-0">Conti Attivi</p>
+                                    </div>
+                                    <div class="col-md-4 text-center">
+                                        <h4 class="text-info">
+                                            €{{ number_format($user->assignedClients()->whereHas('account')->get()->sum(function($client) { 
+                                                return $client->account->balance ?? 0; 
+                                            }), 2, ',', '.') }}
+                                        </h4>
+                                        <p class="mb-0">Saldo Gestito</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Azioni -->
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{{ route('client.profile.edit') }}" class="btn btn-warning">
+                            <i class="fas fa-edit me-2"></i>Modifica Profilo
+                        </a>
+                        <a href="{{ route('client.profile.change-password') }}" class="btn btn-outline-warning">
                             <i class="fas fa-key me-2"></i>Cambia Password
                         </a>
-                        <a href="{{ route('client.security.questions') }}" class="btn btn-info">
-                            <i class="fas fa-question-circle me-2"></i>Domande di Sicurezza
-                            @if($user->securityQuestion)
-                                <span class="badge bg-success ms-2">
-                                    <i class="fas fa-check"></i>
-                                </span>
-                            @else
-                                <span class="badge bg-warning ms-2">
-                                    <i class="fas fa-exclamation"></i>
-                                </span>
-                            @endif
-                        </a>
-                    </div>
-                    
-                    <!-- Stato Sicurezza -->
-                    <div class="mt-3">
-                        <div class="card bg-dark border-secondary">
-                            <div class="card-body py-2">
-                                <h6 class="card-title mb-2">Stato Sicurezza:</h6>
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="small">Password:</span>
-                                    <span class="badge bg-success">Configurata</span>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span class="small">Domanda Sicurezza:</span>
-                                    @if($user->securityQuestion)
-                                        <span class="badge bg-success">Configurata</span>
-                                    @else
-                                        <span class="badge bg-warning">Non Configurata</span>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Informazioni Account -->
-            <div class="card bg-transparent border-light mt-3">
-                <div class="card-header">
-                    <h6><i class="fas fa-info-circle me-2"></i>Informazioni Account</h6>
-                </div>
-                <div class="card-body">
-                    <p class="mb-2">
-                        <strong>Stato Account:</strong> 
-                        <span class="badge {{ $user->is_active ? 'bg-success' : 'bg-danger' }}">
-                            {{ $user->is_active ? 'Attivo' : 'Sospeso' }}
-                        </span>
-                    </p>
-                    <p class="mb-2">
-                        <strong>Ruolo:</strong> 
-                        <span class="badge bg-primary">{{ ucfirst($user->role) }}</span>
-                    </p>
-                    @if($user->account)
-                        <p class="mb-2">
-                            <strong>Conto Associato:</strong> 
-                            <span class="badge bg-success">Presente</span>
-                        </p>
-                        <p class="mb-0">
-                            <strong>Numero Conto:</strong><br>
-                            <small class="font-monospace">{{ $user->account->account_number }}</small>
-                        </p>
-                    @else
-                        <p class="mb-0">
-                            <strong>Conto Associato:</strong> 
-                            <span class="badge bg-warning">Nessuno</span>
-                        </p>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Attività Recente -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card bg-transparent border-light">
-                <div class="card-header">
-                    <h5><i class="fas fa-history me-2"></i>Attività Recente</h5>
-                </div>
-                <div class="card-body">
-                    @if($user->account && $user->account->allTransactions()->exists())
-                        <div class="table-responsive">
-                            <table class="table table-dark table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Data</th>
-                                        <th>Tipo</th>
-                                        <th>Descrizione</th>
-                                        <th class="text-end">Importo</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($user->account->allTransactions()->take(5)->get() as $transaction)
-                                    <tr>
-                                        <td>{{ $transaction->created_at->format('d/m/Y H:i') }}</td>
-                                        <td>
-                                            @if($transaction->from_account_id === $user->account->id)
-                                                <span class="badge bg-primary">Uscita</span>
-                                            @else
-                                                <span class="badge bg-success">Entrata</span>
-                                            @endif
-                                        </td>
-                                        <td>{{ Str::limit($transaction->description, 30) }}</td>
-                                        <td class="text-end">
-                                            @if($transaction->from_account_id === $user->account->id)
-                                                <span class="text-danger">-€{{ number_format($transaction->amount, 2, ',', '.') }}</span>
-                                            @else
-                                                <span class="text-success">+€{{ number_format($transaction->amount, 2, ',', '.') }}</span>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="text-center mt-3">
-                            <a href="{{ route('client.account.show') }}" class="btn btn-outline-light btn-sm">
-                                <i class="fas fa-eye me-1"></i>Visualizza tutti i movimenti
+                        @if($user->isClient())
+                            <a href="{{ route('client.security.questions') }}" class="btn btn-outline-info">
+                                <i class="fas fa-shield-alt me-2"></i>Sicurezza
                             </a>
-                        </div>
-                    @else
-                        <div class="text-center py-3">
-                            <i class="fas fa-history fa-2x text-muted mb-2"></i>
-                            <p class="text-muted">Nessuna attività recente</p>
-                        </div>
-                    @endif
+                            <a href="{{ route('client.notifications.index') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-bell me-2"></i>Notifiche
+                            </a>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>

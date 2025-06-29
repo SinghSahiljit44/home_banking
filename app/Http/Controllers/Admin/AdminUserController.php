@@ -361,4 +361,86 @@ class AdminUserController extends Controller
         $checksum = 98 - bcmod($numericString, '97');
         return str_pad($checksum, 2, '0', STR_PAD_LEFT);
     }
+
+        /**
+     * NUOVO: Blocca/Sblocca un utente (Admin può gestire tutti gli utenti)
+     */
+    public function toggleUserStatus(User $user)
+    {
+        $this->authorize('manage_users');
+
+        if ($user->isAdmin() && $user->id !== auth()->id()) {
+            return back()->withErrors(['error' => 'Non puoi modificare lo stato di altri amministratori.']);
+        }
+
+        if ($user->id === auth()->id()) {
+            return back()->withErrors(['error' => 'Non puoi modificare il tuo stesso stato.']);
+        }
+
+        $oldStatus = $user->is_active;
+        $user->update(['is_active' => !$user->is_active]);
+
+        $status = $user->is_active ? 'attivato' : 'disattivato';
+        
+        // Log dell'operazione
+        \Log::info('User status changed by admin:', [
+            'admin_id' => auth()->id(),
+            'admin_name' => auth()->user()->full_name,
+            'target_user_id' => $user->id,
+            'target_user_name' => $user->full_name,
+            'old_status' => $oldStatus,
+            'new_status' => $user->is_active,
+        ]);
+
+        return back()->with('success', "Utente {$status} con successo.");
+    }
+
+        /**
+     * NUOVO: Rimuove un utente (Admin può rimuovere tutti tranne admin)
+     */
+    public function removeUser(User $user)
+    {
+        $this->authorize('manage_users');
+
+        if ($user->isAdmin()) {
+            return back()->withErrors(['error' => 'Non puoi rimuovere un amministratore.']);
+        }
+
+        if ($user->id === auth()->id()) {
+            return back()->withErrors(['error' => 'Non puoi rimuovere te stesso.']);
+        }
+
+        try {
+            // Disattiva l'utente e marca come rimosso
+            $user->update([
+                'is_active' => false,
+                'email' => $user->email . '_removed_' . time(),
+                'username' => $user->username . '_removed_' . time(),
+            ]);
+
+            // Disattiva anche il conto se presente
+            if ($user->account) {
+                $user->account->update(['is_active' => false]);
+            }
+
+            // Log dell'operazione
+            \Log::info('User removed by admin:', [
+                'admin_id' => auth()->id(),
+                'admin_name' => auth()->user()->full_name,
+                'removed_user_id' => $user->id,
+                'removed_user_name' => $user->full_name,
+            ]);
+
+            return back()->with('success', "Utente {$user->full_name} rimosso con successo.");
+
+        } catch (\Exception $e) {
+            \Log::error('User removal failed:', [
+                'admin_id' => auth()->id(),
+                'target_user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['error' => 'Errore durante la rimozione dell\'utente.']);
+        }
+    }
 }

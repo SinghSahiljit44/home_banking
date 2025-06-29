@@ -1,6 +1,6 @@
 @extends('layouts.bootstrap')
 
-@section('title', 'Modifica Profilo')
+@section('title', 'Modifica Cliente')
 
 @section('content')
 <div class="container mt-4">
@@ -9,9 +9,9 @@
             <div class="card bg-transparent border-light">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h4><i class="fas fa-edit me-2"></i>Modifica Profilo</h4>
-                        <a href="{{ route('client.profile.show') }}" class="btn btn-outline-light btn-sm">
-                            <i class="fas fa-arrow-left me-1"></i>Torna al Profilo
+                        <h4><i class="fas fa-edit me-2"></i>Modifica Cliente: {{ $client->full_name }}</h4>
+                        <a href="{{ route('employee.clients.show', $client) }}" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>Torna ai Dettagli
                         </a>
                     </div>
                 </div>
@@ -26,9 +26,11 @@
                         </div>
                     @endif
 
-                    <form method="POST" action="{{ route('client.profile.update') }}">
+                    <form method="POST" action="{{ route('employee.clients.update', $client) }}">
                         @csrf
+                        @method('PUT')
                         
+                        <!-- Informazioni Base -->
                         <div class="card bg-dark border-secondary mb-4">
                             <div class="card-header">
                                 <h6><i class="fas fa-id-card me-2"></i>Informazioni Personali</h6>
@@ -41,7 +43,7 @@
                                                class="form-control @error('first_name') is-invalid @enderror" 
                                                id="first_name" 
                                                name="first_name" 
-                                               value="{{ old('first_name', $user->first_name) }}" 
+                                               value="{{ old('first_name', $client->first_name) }}" 
                                                required 
                                                maxlength="50">
                                         @error('first_name')
@@ -55,7 +57,7 @@
                                                class="form-control @error('last_name') is-invalid @enderror" 
                                                id="last_name" 
                                                name="last_name" 
-                                               value="{{ old('last_name', $user->last_name) }}" 
+                                               value="{{ old('last_name', $client->last_name) }}" 
                                                required 
                                                maxlength="50">
                                         @error('last_name')
@@ -71,7 +73,7 @@
                                                class="form-control @error('email') is-invalid @enderror" 
                                                id="email" 
                                                name="email" 
-                                               value="{{ old('email', $user->email) }}" 
+                                               value="{{ old('email', $client->email) }}" 
                                                required 
                                                maxlength="100">
                                         @error('email')
@@ -85,7 +87,7 @@
                                                class="form-control @error('phone') is-invalid @enderror" 
                                                id="phone" 
                                                name="phone" 
-                                               value="{{ old('phone', $user->phone) }}" 
+                                               value="{{ old('phone', $client->phone) }}" 
                                                maxlength="20">
                                         @error('phone')
                                             <div class="invalid-feedback">{{ $message }}</div>
@@ -99,14 +101,29 @@
                                               id="address" 
                                               name="address" 
                                               rows="3" 
-                                              maxlength="500">{{ old('address', $user->address) }}</textarea>
+                                              maxlength="500">{{ old('address', $client->address) }}</textarea>
                                     @error('address')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
+
+                                <div class="mb-3">
+                                    <label for="notes" class="form-label">Note Personali</label>
+                                    <textarea class="form-control @error('notes') is-invalid @enderror" 
+                                              id="notes" 
+                                              name="notes" 
+                                              rows="3" 
+                                              maxlength="1000"
+                                              placeholder="Note private visibili solo a te...">{{ old('notes') }}</textarea>
+                                    @error('notes')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                    <div class="form-text">Queste note sono private e visibili solo a te</div>
+                                </div>
                             </div>
                         </div>
 
+                        <!-- Informazioni di Sola Lettura -->
                         <div class="card bg-info bg-opacity-10 border-info mb-4">
                             <div class="card-header">
                                 <h6><i class="fas fa-info-circle me-2"></i>Informazioni di Sistema</h6>
@@ -114,23 +131,23 @@
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <p><strong>Username:</strong> {{ $user->username }}</p>
-                                        <p><strong>Ruolo:</strong> {{ ucfirst($user->role) }}</p>
+                                        <p><strong>Username:</strong> {{ $client->username }}</p>
+                                        <p><strong>Ruolo:</strong> {{ ucfirst($client->role) }}</p>
                                     </div>
                                     <div class="col-md-6">
-                                        <p><strong>Registrato:</strong> {{ $user->created_at->format('d/m/Y') }}</p>
-                                        <p><strong>Ultimo Aggiornamento:</strong> {{ $user->updated_at->format('d/m/Y H:i') }}</p>
+                                        <p><strong>Registrato:</strong> {{ $client->created_at->format('d/m/Y H:i') }}</p>
+                                        <p><strong>Ultimo Aggiornamento:</strong> {{ $client->updated_at->format('d/m/Y H:i') }}</p>
                                     </div>
                                 </div>
                                 <div class="alert alert-info mb-0">
                                     <i class="fas fa-info-circle me-2"></i>
-                                    Username e ruolo non possono essere modificati.
+                                    Username e ruolo non possono essere modificati. Per il reset password usa l'apposita funzione.
                                 </div>
                             </div>
                         </div>
 
                         <div class="d-flex justify-content-between">
-                            <a href="{{ route('client.profile.show') }}" class="btn btn-secondary">
+                            <a href="{{ route('employee.clients.show', $client) }}" class="btn btn-secondary">
                                 <i class="fas fa-times me-1"></i>Annulla
                             </a>
                             <button type="submit" class="btn btn-success">

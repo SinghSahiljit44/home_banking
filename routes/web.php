@@ -265,6 +265,8 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{user}/create-account', [AdminUserController::class, 'createAccount'])->name('create-account');
             Route::post('/{user}/toggle-account', [AdminUserController::class, 'toggleAccountStatus'])->name('toggle-account');
             Route::post('/{user}/deposit', [AdminUserController::class, 'deposit'])->name('deposit');
+            Route::post('/{user}/toggle-status', [AdminUserController::class, 'toggleUserStatus'])->name('admin.users.toggle-status');
+            Route::post('/{user}/remove', [AdminUserController::class, 'removeUser'])->name('admin.users.remove');
         });
 
         // GESTIONE ASSOCIAZIONI EMPLOYEE-CLIENT
@@ -354,7 +356,9 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{client}/reset-password', [EmployeeClientController::class, 'resetPassword'])->name('reset-password');
             Route::post('/{client}/transfer', [EmployeeClientController::class, 'makeTransfer'])->name('transfer');
             Route::post('/{client}/create-account', [EmployeeClientController::class, 'createAccount'])->name('create-account');
-            
+            Route::post('/{client}/toggle-status', [EmployeeClientController::class, 'toggleClientStatus'])->name('employee.clients.toggle-status');
+            Route::post('/{client}/remove', [EmployeeClientController::class, 'removeClient'])->name('employee.clients.remove');
+
             // DEPOSITI solo per clienti assegnati (tramite gestione clienti)
             Route::post('/{client}/deposit', [EmployeeClientController::class, 'deposit'])->name('deposit');
         });

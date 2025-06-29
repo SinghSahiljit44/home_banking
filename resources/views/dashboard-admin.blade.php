@@ -1,155 +1,225 @@
 @extends('layouts.bootstrap')
 
-@section('title', 'Dashboard Amministratore')
+@section('title', 'Dashboard Admin')
 
 @section('content')
-<div class="container mt-5">
+<div class="container mt-4">
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Dashboard Amministratore</h2>
                 <div>
-                    <span class="text-white-50 me-3">Benvenuto, {{ Auth::user()->full_name }}</span>
-                    <form method="POST" action="{{ route('logout') }}" class="d-inline">
-                        @csrf
-                        <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
-                    </form>
+                    <h2><i class="fas fa-shield-alt me-2"></i>Dashboard Amministratore</h2>
+                    <p class="text-muted">Benvenuto, {{ Auth::user()->full_name }}</p>
+                </div>
+                <div>
+                    <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle me-1"></i>{{ Auth::user()->full_name }}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-dark">
+                        <li><a class="dropdown-item" href="{{ route('client.profile.show') }}">
+                            <i class="fas fa-user me-2"></i>Profilo
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="POST" action="{{ route('logout') }}" class="d-inline">
+                                @csrf
+                                <button type="submit" class="dropdown-item">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
 
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <!-- Statistiche Generali -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-transparent border-light text-center">
+                <div class="card-body">
+                    <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                    <h4 class="text-primary">{{ App\Models\User::count() }}</h4>
+                    <p class="mb-0">Utenti Totali</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-transparent border-light text-center">
+                <div class="card-body">
+                    <i class="fas fa-university fa-2x text-success mb-2"></i>
+                    <h4 class="text-success">{{ App\Models\Account::count() }}</h4>
+                    <p class="mb-0">Conti Attivi</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-transparent border-light text-center">
+                <div class="card-body">
+                    <i class="fas fa-exchange-alt fa-2x text-info mb-2"></i>
+                    <h4 class="text-info">{{ App\Models\Transaction::count() }}</h4>
+                    <p class="mb-0">Transazioni</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-transparent border-light text-center">
+                <div class="card-body">
+                    <i class="fas fa-euro-sign fa-2x text-warning mb-2"></i>
+                    <h4 class="text-warning">€{{ number_format(App\Models\Account::sum('balance'), 2, ',', '.') }}</h4>
+                    <p class="mb-0">Saldo Totale</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu Principale -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card bg-transparent border-primary h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                    <h5>Gestione Utenti</h5>
+                    <p class="small text-muted">Amministra utenti e permessi</p>
+                    <a href="{{ route('admin.users.index') }}" class="btn btn-primary">
+                        Accedi
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card bg-transparent border-success h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-exchange-alt fa-3x text-success mb-3"></i>
+                    <h5>Transazioni</h5>
+                    <p class="small text-muted">Monitora e gestisci transazioni</p>
+                    <a href="{{ route('admin.transactions.index') }}" class="btn btn-success">
+                        Accedi
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card bg-transparent border-info h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-tie fa-3x text-info mb-3"></i>
+                    <h5>Assegnazioni</h5>
+                    <p class="small text-muted">Gestisci Employee-Client</p>
+                    <a href="{{ route('admin.assignments.index') }}" class="btn btn-info">
+                        Accedi
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card bg-transparent border-warning h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-key fa-3x text-warning mb-3"></i>
+                    <h5>Recupero Credenziali</h5>
+                    <p class="small text-muted">Reset password e username</p>
+                    <a href="{{ route('admin.password-recovery.index') }}" class="btn btn-warning">
+                        Accedi
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card bg-transparent border-danger h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-bar fa-3x text-danger mb-3"></i>
+                    <h5>Report</h5>
+                    <p class="small text-muted">Statistiche e report avanzati</p>
+                    <a href="{{ route('admin.reports.index') }}" class="btn btn-danger">
+                        Accedi
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card bg-transparent border-secondary h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-university fa-3x text-secondary mb-3"></i>
+                    <h5>Conti</h5>
+                    <p class="small text-muted">Gestione conti correnti</p>
+                    <a href="{{ route('admin.accounts.index') }}" class="btn btn-secondary">
+                        Accedi
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Azioni Rapide -->
     <div class="row">
-        <div class="col-md-3">
-            <div class="card bg-transparent border-light text-center">
-                <div class="card-body">
-                    <h5 class="card-title">Totale Clienti</h5>
-                    <h3 class="text-success">{{ \App\Models\User::where('role', 'client')->count() }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-transparent border-light text-center">
-                <div class="card-body">
-                    <h5 class="card-title">Conti Attivi</h5>
-                    <h3 class="text-info">{{ \App\Models\Account::where('is_active', true)->count() }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-transparent border-light text-center">
-                <div class="card-body">
-                    <h5 class="card-title">Transazioni Oggi</h5>
-                    <h3 class="text-warning">{{ \App\Models\Transaction::whereDate('created_at', today())->count() }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-transparent border-light text-center">
-                <div class="card-body">
-                    <h5 class="card-title">Saldo Totale</h5>
-                    <h3 class="text-primary">€{{ number_format(\App\Models\Account::sum('balance'), 2, ',', '.') }}</h3>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row mt-4">
-        <div class="col-md-8">
+        <div class="col-md-6">
             <div class="card bg-transparent border-light">
                 <div class="card-header">
-                    <h5>Ultimi Clienti Registrati</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-dark table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>Email</th>
-                                    <th>Data Registrazione</th>
-                                    <th>Stato</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach(\App\Models\User::where('role', 'client')->latest()->take(5)->get() as $client)
-                                <tr>
-                                    <td>{{ $client->full_name }}</td>
-                                    <td>{{ $client->email }}</td>
-                                    <td>{{ $client->created_at->format('d/m/Y') }}</td>
-                                    <td>
-                                        <span class="badge bg-{{ $client->is_active ? 'success' : 'danger' }}">
-                                            {{ $client->is_active ? 'Attivo' : 'Sospeso' }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card bg-transparent border-light">
-                <div class="card-header">
-                    <h5>Azioni Amministrative</h5>
+                    <h5><i class="fas fa-plus-circle me-2"></i>Azioni Rapide</h5>
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <button class="btn btn-primary" disabled>Gestisci Clienti</button>
-                        <button class="btn btn-success" disabled>Nuovo Cliente</button>
-                        <button class="btn btn-info" disabled>Report Transazioni</button>
-                        <button class="btn btn-warning" disabled>Gestisci Conti</button>
-                        <button class="btn btn-secondary" disabled>Impostazioni Sistema</button>
+                        <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
+                            <i class="fas fa-user-plus me-2"></i>Crea Nuovo Utente
+                        </a>
+                        <a href="{{ route('admin.assignments.index') }}" class="btn btn-info">
+                            <i class="fas fa-link me-2"></i>Gestisci Assegnazioni
+                        </a>
+                        <a href="{{ route('admin.transactions.index') }}" class="btn btn-success">
+                            <i class="fas fa-list me-2"></i>Visualizza Transazioni
+                        </a>
+                        <a href="{{ route('admin.password-recovery.index') }}" class="btn btn-warning">
+                            <i class="fas fa-key me-2"></i>Recupero Credenziali
+                        </a>
                     </div>
-                    <small class="text-muted">Funzionalità in via di sviluppo</small>
                 </div>
             </div>
         </div>
-    </div>
-
-    <div class="row mt-4">
-        <div class="col-12">
+        
+        <div class="col-md-6">
             <div class="card bg-transparent border-light">
                 <div class="card-header">
-                    <h5>Ultime Transazioni del Sistema</h5>
+                    <h5><i class="fas fa-exclamation-triangle me-2"></i>Allerte Sistema</h5>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-dark table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Data</th>
-                                    <th>Da</th>
-                                    <th>A</th>
-                                    <th>Importo</th>
-                                    <th>Tipo</th>
-                                    <th>Stato</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse(\App\Models\Transaction::with(['fromAccount.user', 'toAccount.user'])->latest()->take(10)->get() as $transaction)
-                                <tr>
-                                    <td>{{ $transaction->created_at->format('d/m/Y H:i') }}</td>
-                                    <td>{{ $transaction->fromAccount ? $transaction->fromAccount->user->full_name : 'Sistema' }}</td>
-                                    <td>{{ $transaction->toAccount ? $transaction->toAccount->user->full_name : 'Sistema' }}</td>
-                                    <td>€{{ number_format($transaction->amount, 2, ',', '.') }}</td>
-                                    <td>{{ ucfirst(str_replace('_', ' ', $transaction->type)) }}</td>
-                                    <td>
-                                        <span class="badge bg-{{ $transaction->status === 'completed' ? 'success' : ($transaction->status === 'failed' ? 'danger' : 'warning') }}">
-                                            {{ ucfirst($transaction->status) }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="6" class="text-center text-muted">Nessuna transazione trovata</td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                    <div class="list-group list-group-flush">
+                        @if(App\Models\Transaction::where('status', 'pending')->count() > 0)
+                            <div class="list-group-item bg-transparent border-warning">
+                                <i class="fas fa-clock text-warning me-2"></i>
+                                {{ App\Models\Transaction::where('status', 'pending')->count() }} transazioni in sospeso
+                            </div>
+                        @endif
+                        
+                        @if(App\Models\User::where('is_active', false)->where('role', 'client')->count() > 0)
+                            <div class="list-group-item bg-transparent border-danger">
+                                <i class="fas fa-user-slash text-danger me-2"></i>
+                                {{ App\Models\User::where('is_active', false)->where('role', 'client')->count() }} clienti disattivati
+                            </div>
+                        @endif
+                        
+                        @if(App\Models\User::where('role', 'client')->doesntHave('assignedEmployees')->count() > 0)
+                            <div class="list-group-item bg-transparent border-info">
+                                <i class="fas fa-user-question text-info me-2"></i>
+                                {{ App\Models\User::where('role', 'client')->doesntHave('assignedEmployees')->count() }} clienti non assegnati
+                            </div>
+                        @endif
+                        
+                        <div class="list-group-item bg-transparent border-secondary">
+                            <i class="fas fa-calendar text-muted me-2"></i>
+                            Sistema aggiornato: {{ date('d/m/Y') }}
+                        </div>
                     </div>
                 </div>
             </div>
