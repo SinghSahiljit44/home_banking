@@ -105,9 +105,39 @@
                         <a href="{{ route('client.profile.change-password') }}" class="btn btn-warning">
                             <i class="fas fa-key me-2"></i>Cambia Password
                         </a>
-                        <button class="btn btn-info" disabled>
+                        <a href="{{ route('client.security.questions') }}" class="btn btn-info">
                             <i class="fas fa-question-circle me-2"></i>Domande di Sicurezza
-                        </button>
+                            @if($user->securityQuestion)
+                                <span class="badge bg-success ms-2">
+                                    <i class="fas fa-check"></i>
+                                </span>
+                            @else
+                                <span class="badge bg-warning ms-2">
+                                    <i class="fas fa-exclamation"></i>
+                                </span>
+                            @endif
+                        </a>
+                    </div>
+                    
+                    <!-- Stato Sicurezza -->
+                    <div class="mt-3">
+                        <div class="card bg-dark border-secondary">
+                            <div class="card-body py-2">
+                                <h6 class="card-title mb-2">Stato Sicurezza:</h6>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small">Password:</span>
+                                    <span class="badge bg-success">Configurata</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="small">Domanda Sicurezza:</span>
+                                    @if($user->securityQuestion)
+                                        <span class="badge bg-success">Configurata</span>
+                                    @else
+                                        <span class="badge bg-warning">Non Configurata</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

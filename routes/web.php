@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Client\TransferController;
 use App\Http\Controllers\Client\ProfileController;
 use App\Http\Controllers\Client\AccountController;
+use App\Http\Controllers\Client\SecurityQuestionController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 
@@ -154,8 +155,6 @@ Route::middleware(['auth'])->group(function () {
         return view('dashboard-employee');
     })->name('dashboard.employee');
 
-    
-
     // Main dashboard redirect
     Route::get('/dashboard', function () {
         $user = Auth::user();
@@ -207,6 +206,15 @@ Route::middleware(['auth'])->group(function () {
             Route::put('/{beneficiary}', [App\Http\Controllers\Client\BeneficiaryController::class, 'update'])->name('update');
             Route::post('/{beneficiary}/toggle-favorite', [App\Http\Controllers\Client\BeneficiaryController::class, 'toggleFavorite'])->name('toggle-favorite');
             Route::delete('/{beneficiary}', [App\Http\Controllers\Client\BeneficiaryController::class, 'destroy'])->name('destroy');
+        });
+
+        // DOMANDE DI SICUREZZA
+        Route::prefix('security')->name('security.')->group(function () {
+            Route::get('/questions', [SecurityQuestionController::class, 'index'])->name('questions');
+            Route::post('/questions', [SecurityQuestionController::class, 'store'])->name('questions.store');
+            Route::get('/verify', [SecurityQuestionController::class, 'verify'])->name('verify');
+            Route::post('/verify', [SecurityQuestionController::class, 'checkAnswer'])->name('verify.check');
+            Route::delete('/questions', [SecurityQuestionController::class, 'destroy'])->name('questions.destroy');
         });
 
         // PROFILO
