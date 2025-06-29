@@ -11,6 +11,10 @@ use App\Http\Controllers\Client\AccountController;
 use App\Http\Controllers\Client\SecurityQuestionController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminAssignmentsController;
+use App\Http\Controllers\Admin\PasswordRecoveryController;
+use App\Http\Controllers\Employee\EmployeeDashboardController;
+use App\Http\Controllers\Employee\EmployeeClientController;
 
 // Homepage
 Route::view('/', 'index');
@@ -144,7 +148,7 @@ Route::middleware(['auth'])->group(function () {
     })->name('dashboard.admin');
 
     // Dashboard employee
-    Route::get('/employee/dashboard', function () {
+    Route::get('/dashboard-employee', function () {
         $user = Auth::user();
         
         if (!$user || !$user->isEmployee()) {
@@ -237,37 +241,6 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/export-csv', [AccountController::class, 'exportCsv'])->name('export-csv');
             Route::get('/transaction/{id}', [AccountController::class, 'showTransaction'])->name('transaction.show');
         });
-
-        // SUPPORTO E ASSISTENZA
-        Route::prefix('support')->name('support.')->group(function () {
-            Route::get('/', function () {
-                return view('client.support.index');
-            })->name('index');
-            
-            Route::get('/contact', function () {
-                return view('client.support.contact');
-            })->name('contact');
-            
-            Route::post('/contact', function (Illuminate\Http\Request $request) {
-                // Implementa invio richiesta supporto
-                return back()->with('success', 'Richiesta inviata con successo. Ti contatteremo presto.');
-            })->name('contact.store');
-        });
-
-        // IMPOSTAZIONI
-        Route::prefix('settings')->name('settings.')->group(function () {
-            Route::get('/', function () {
-                return view('client.settings.index');
-            })->name('index');
-            
-            Route::get('/security', function () {
-                return view('client.settings.security');
-            })->name('security');
-            
-            Route::get('/preferences', function () {
-                return view('client.settings.preferences');
-            })->name('preferences');
-        });
     });
 
     // ========== ADMIN ROUTES ==========
@@ -291,6 +264,27 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{user}/create-account', [AdminUserController::class, 'createAccount'])->name('create-account');
             Route::post('/{user}/toggle-account', [AdminUserController::class, 'toggleAccountStatus'])->name('toggle-account');
             Route::post('/{user}/deposit', [AdminUserController::class, 'deposit'])->name('deposit');
+        });
+
+        // GESTIONE ASSOCIAZIONI EMPLOYEE-CLIENT
+        Route::prefix('assignments')->name('assignments.')->group(function () {
+            Route::get('/', [AdminAssignmentsController::class, 'index'])->name('index');
+            Route::get('/employee/{employee}', [AdminAssignmentsController::class, 'showEmployee'])->name('employee');
+            Route::post('/assign', [AdminAssignmentsController::class, 'assignClient'])->name('assign');
+            Route::post('/unassign', [AdminAssignmentsController::class, 'unassignClient'])->name('unassign');
+            Route::post('/bulk-assign', [AdminAssignmentsController::class, 'bulkAssign'])->name('bulk-assign');
+            Route::get('/statistics', [AdminAssignmentsController::class, 'statistics'])->name('statistics');
+        });
+
+        // RECUPERO CREDENZIALI
+        Route::prefix('password-recovery')->name('password-recovery.')->group(function () {
+            Route::get('/', [PasswordRecoveryController::class, 'index'])->name('index');
+            Route::post('/generate', [PasswordRecoveryController::class, 'generatePassword'])->name('generate');
+            Route::post('/reset-username', [PasswordRecoveryController::class, 'resetUsername'])->name('reset-username');
+            Route::post('/unlock-account', [PasswordRecoveryController::class, 'unlockAccount'])->name('unlock-account');
+            Route::post('/bulk-reset', [PasswordRecoveryController::class, 'bulkReset'])->name('bulk-reset');
+            Route::get('/audit-log', [PasswordRecoveryController::class, 'auditLog'])->name('audit-log');
+            Route::get('/search-users', [PasswordRecoveryController::class, 'searchUsers'])->name('search-users');
         });
 
         // REPORT E STATISTICHE
@@ -343,47 +337,44 @@ Route::middleware(['auth'])->group(function () {
                 return back()->with('success', 'Conto sbloccato con successo.');
             })->name('unfreeze');
         });
-
-        // AUDIT E LOG
-        Route::prefix('audit')->name('audit.')->group(function () {
-            Route::get('/', function () {
-                $logs = App\Models\ActivityLog::with('user')->latest()->paginate(50);
-                return view('admin.audit.index', compact('logs'));
-            })->name('index');
-            
-            Route::get('/user/{user}', function (App\Models\User $user) {
-                $logs = $user->activityLogs()->latest()->paginate(50);
-                return view('admin.audit.user', compact('user', 'logs'));
-            })->name('user');
-        });
-
-        // IMPOSTAZIONI SISTEMA
-        Route::prefix('settings')->name('settings.')->group(function () {
-            Route::get('/', function () {
-                return view('admin.settings.index');
-            })->name('index');
-            
-            Route::get('/limits', function () {
-                return view('admin.settings.limits');
-            })->name('limits');
-            
-            Route::get('/notifications', function () {
-                return view('admin.settings.notifications');
-            })->name('notifications');
-            
-            Route::get('/security', function () {
-                return view('admin.settings.security');
-            })->name('security');
-        });
     });
 
     // ========== EMPLOYEE ROUTES ==========
     
     Route::middleware(['role:employee'])->prefix('employee')->name('employee.')->group(function () {
-        // Routes per dipendenti (da implementare se necessario)
-        Route::get('/dashboard', function () {
-            return view('employee.dashboard');
-        })->name('dashboard');
+        
+        // DASHBOARD
+        Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/statistics', [EmployeeDashboardController::class, 'statistics'])->name('statistics');
+
+        // GESTIONE CLIENTI ASSEGNATI
+        Route::prefix('clients')->name('clients.')->group(function () {
+            Route::get('/', [EmployeeDashboardController::class, 'clients'])->name('index');
+            Route::get('/create', [EmployeeClientController::class, 'create'])->name('create');
+            Route::post('/', [EmployeeClientController::class, 'store'])->name('store');
+            Route::get('/{client}', [EmployeeDashboardController::class, 'showClient'])->name('show');
+            Route::get('/{client}/edit', [EmployeeClientController::class, 'edit'])->name('edit');
+            Route::put('/{client}', [EmployeeClientController::class, 'update'])->name('update');
+            
+            // Azioni per clienti
+            Route::post('/{client}/reset-password', [EmployeeClientController::class, 'resetPassword'])->name('reset-password');
+            Route::post('/{client}/deposit', [EmployeeClientController::class, 'deposit'])->name('deposit');
+            Route::post('/{client}/transfer', [EmployeeClientController::class, 'makeTransfer'])->name('transfer');
+            Route::post('/{client}/create-account', [EmployeeClientController::class, 'createAccount'])->name('create-account');
+        });
+
+        // TRANSAZIONI CLIENTI ASSEGNATI
+        Route::prefix('transactions')->name('transactions.')->group(function () {
+            Route::get('/', [EmployeeDashboardController::class, 'transactions'])->name('index');
+        });
+
+        // RECUPERO CREDENZIALI CLIENTI ASSEGNATI
+        Route::prefix('password-recovery')->name('password-recovery.')->group(function () {
+            Route::get('/', [PasswordRecoveryController::class, 'index'])->name('index');
+            Route::post('/generate', [PasswordRecoveryController::class, 'generatePassword'])->name('generate');
+            Route::post('/unlock-account', [PasswordRecoveryController::class, 'unlockAccount'])->name('unlock-account');
+            Route::get('/search-users', [PasswordRecoveryController::class, 'searchUsers'])->name('search-users');
+        });
     });
 });
 
@@ -394,7 +385,3 @@ Route::post('/logout', function (Request $request) {
     $request->session()->regenerateToken();
     return redirect('/')->with('success', 'Logout effettuato con successo.');
 })->name('logout');
-
-// ========== JETSTREAM ROUTES (se necessarie) ==========
-// Queste routes sono gestite automaticamente da Jetstream
-// ma le manteniamo per compatibilità
