@@ -195,14 +195,6 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/confirm', [TransferController::class, 'confirm'])->name('confirm');
             Route::get('/cancel', [TransferController::class, 'cancel'])->name('cancel');
         });
-        
-        //NOTIFICHE
-        Route::prefix('notifications')->name('notifications.')->group(function () {
-            Route::get('/', [App\Http\Controllers\Client\NotificationController::class, 'index'])->name('index');
-            Route::post('/{id}/mark-as-read', [App\Http\Controllers\Client\NotificationController::class, 'markAsRead'])->name('mark-as-read');
-            Route::post('/mark-all-read', [App\Http\Controllers\Client\NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
-            Route::delete('/{id}', [App\Http\Controllers\Client\NotificationController::class, 'destroy'])->name('destroy');
-        });
 
         // BENEFICIARI
         Route::prefix('beneficiaries')->name('beneficiaries.')->group(function () {

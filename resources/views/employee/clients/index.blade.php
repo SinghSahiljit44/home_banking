@@ -300,9 +300,6 @@ document.querySelectorAll('[id^="recipient_iban"]').forEach(input => {
                             <a href="{{ route('client.security.questions') }}" class="btn btn-outline-info">
                                 <i class="fas fa-shield-alt me-2"></i>Sicurezza
                             </a>
-                            <a href="{{ route('client.notifications.index') }}" class="btn btn-outline-primary">
-                                <i class="fas fa-bell me-2"></i>Notifiche
-                            </a>
                         @endif
                     </div>
                 </div>

@@ -117,35 +117,6 @@
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-3 mb-3">
-            <div class="card bg-transparent border-success h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-address-book fa-3x text-success mb-3"></i>
-                    <h5>Beneficiari</h5>
-                    <p class="small text-muted">Gestisci i tuoi beneficiari</p>
-                    <a href="{{ route('client.beneficiaries.index') }}" class="btn btn-success">
-                        Gestisci
-                    </a>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-3 mb-3">
-            <div class="card bg-transparent border-warning h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-bell fa-3x text-warning mb-3"></i>
-                    <h5>Notifiche</h5>
-                    <p class="small text-muted">Messaggi e comunicazioni</p>
-                    <a href="{{ route('client.notifications.index') }}" class="btn btn-warning">
-                        Visualizza
-                        @if(Auth::user()->notifications()->whereNull('read_at')->count() > 0)
-                            <span class="badge bg-danger ms-1">{{ Auth::user()->notifications()->whereNull('read_at')->count() }}</span>
-                        @endif
-                    </a>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Movimenti Recenti -->
