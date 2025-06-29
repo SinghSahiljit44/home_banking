@@ -13,7 +13,7 @@ class LoginResponse implements LoginResponseContract
         if ($user->isAdmin()) {
             return redirect()->intended('/dashboard-admin');
         } elseif ($user->isEmployee()) {
-            return redirect()->intended('/employee/dashboard');
+            return redirect()->intended('/dashboard-employee');
         } elseif ($user->isClient()) {
             return redirect()->intended('/dashboard-cliente');
         }

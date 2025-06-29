@@ -106,7 +106,7 @@ Route::middleware('guest')->group(function () {
             if ($user->isAdmin()) {
                 return redirect()->intended('/dashboard-admin')->with('success', 'Accesso effettuato con successo!');
             } else {
-                return redirect()->intended('/employee/dashboard')->with('success', 'Accesso effettuato con successo!');
+                return redirect()->intended('/dashboard-employee')->with('success', 'Accesso effettuato con successo!');
             }
         }
         
