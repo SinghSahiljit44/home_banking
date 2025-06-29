@@ -347,7 +347,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
         Route::get('/statistics', [EmployeeDashboardController::class, 'statistics'])->name('statistics');
 
-        // GESTIONE CLIENTI ASSEGNATI
+        // GESTIONE CLIENTI ASSEGNATI (solo per clienti assegnati)
         Route::prefix('clients')->name('clients.')->group(function () {
             Route::get('/', [EmployeeDashboardController::class, 'clients'])->name('index');
             Route::get('/create', [EmployeeClientController::class, 'create'])->name('create');
@@ -356,19 +356,29 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{client}/edit', [EmployeeClientController::class, 'edit'])->name('edit');
             Route::put('/{client}', [EmployeeClientController::class, 'update'])->name('update');
             
-            // Azioni per clienti
+            // Azioni per clienti ASSEGNATI
             Route::post('/{client}/reset-password', [EmployeeClientController::class, 'resetPassword'])->name('reset-password');
-            Route::post('/{client}/deposit', [EmployeeClientController::class, 'deposit'])->name('deposit');
             Route::post('/{client}/transfer', [EmployeeClientController::class, 'makeTransfer'])->name('transfer');
             Route::post('/{client}/create-account', [EmployeeClientController::class, 'createAccount'])->name('create-account');
+            
+            // DEPOSITI solo per clienti assegnati (tramite gestione clienti)
+            Route::post('/{client}/deposit', [EmployeeClientController::class, 'deposit'])->name('deposit');
         });
 
-        // TRANSAZIONI CLIENTI ASSEGNATI
+        // DEPOSITI UNIVERSALI (tutti i clienti) - NUOVO
+        Route::prefix('universal')->name('universal.')->group(function () {
+            Route::get('/clients', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'showAllClients'])->name('clients');
+            Route::post('/clients/{client}/deposit', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'depositToAnyClient'])->name('deposit');
+            Route::get('/clients/{client}/detail', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'showClientForDeposit'])->name('client-detail');
+            Route::get('/search-clients', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'searchClients'])->name('search-clients');
+        });
+
+        // TRANSAZIONI CLIENTI ASSEGNATI (solo transazioni dei clienti assegnati)
         Route::prefix('transactions')->name('transactions.')->group(function () {
             Route::get('/', [EmployeeDashboardController::class, 'transactions'])->name('index');
         });
 
-        // RECUPERO CREDENZIALI CLIENTI ASSEGNATI
+        // RECUPERO CREDENZIALI CLIENTI ASSEGNATI (solo per clienti assegnati)
         Route::prefix('password-recovery')->name('password-recovery.')->group(function () {
             Route::get('/', [PasswordRecoveryController::class, 'index'])->name('index');
             Route::post('/generate', [PasswordRecoveryController::class, 'generatePassword'])->name('generate');

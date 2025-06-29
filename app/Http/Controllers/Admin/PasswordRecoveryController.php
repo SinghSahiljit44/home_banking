@@ -18,8 +18,7 @@ class PasswordRecoveryController extends Controller
         $this->middleware(function ($request, $next) {
             $user = Auth::user();
             
-            // Solo admin possono recuperare credenziali di tutti
-            // Employee possono recuperare solo clienti assegnati
+            // Solo admin e employee possono recuperare credenziali
             if (!$user->isAdmin() && !$user->isEmployee()) {
                 abort(403, 'Accesso non autorizzato');
             }
@@ -30,43 +29,57 @@ class PasswordRecoveryController extends Controller
 
     /**
      * Mostra il form per il recupero credenziali
+     * AGGIORNATO: Employee vede solo clienti assegnati
      */
     public function index(Request $request)
     {
         $currentUser = Auth::user();
         
-        // Lista utenti disponibili in base al ruolo
+        // Lista utenti disponibili in base al ruolo - AGGIORNATO
         if ($currentUser->isAdmin()) {
             // Admin vede tutti gli utenti tranne se stesso
-            $users = User::where('id', '!=', $currentUser->id)
-                        ->where('is_active', true)
-                        ->orderBy('role')
-                        ->orderBy('last_name')
-                        ->get();
+            $query = User::where('id', '!=', $currentUser->id)
+                        ->where('is_active', true);
         } else {
-            // Employee vede solo i suoi clienti assegnati
-            $users = $currentUser->assignedClients;
+            // Employee vede solo i suoi clienti assegnati - CORREZIONE PRINCIPALE
+            $query = $currentUser->assignedClients()->where('is_active', true);
         }
 
-        // Filtri
+        // Applica filtri
         if ($request->filled('search')) {
             $search = $request->get('search');
-            $users = $users->filter(function ($user) use ($search) {
-                return stripos($user->full_name, $search) !== false ||
-                       stripos($user->email, $search) !== false ||
-                       stripos($user->username, $search) !== false;
+            $query->where(function($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('username', 'like', "%{$search}%");
             });
         }
 
         if ($request->filled('role') && $currentUser->isAdmin()) {
-            $users = $users->where('role', $request->get('role'));
+            $query->where('role', $request->get('role'));
         }
 
-        return view('admin.password-recovery.index', compact('users'));
+        if ($currentUser->isAdmin()) {
+            $users = $query->orderBy('role')->orderBy('last_name')->get();
+        } else {
+            // Per employee, ottieni la collection dai clienti assegnati
+            $users = $query->orderBy('last_name')->get();
+        }
+
+        // Statistiche
+        $stats = [
+            'total_available' => $users->count(),
+            'clients_count' => $users->where('role', 'client')->count(),
+            'employees_count' => $users->where('role', 'employee')->count(),
+        ];
+
+        return view('admin.password-recovery.index', compact('users', 'stats'));
     }
 
     /**
      * Genera nuova password per un utente
+     * AGGIORNATO: Controlli specifici per employee
      */
     public function generatePassword(Request $request)
     {
@@ -84,7 +97,7 @@ class PasswordRecoveryController extends Controller
         $currentUser = Auth::user();
         $targetUser = User::findOrFail($request->user_id);
 
-        // Verifica permessi
+        // Verifica permessi - AGGIORNATO
         if (!$this->canResetUserPassword($currentUser, $targetUser)) {
             abort(403, 'Non hai i permessi per resettare la password di questo utente.');
         }
@@ -219,6 +232,7 @@ class PasswordRecoveryController extends Controller
 
     /**
      * Verifica se l'utente corrente può resettare la password dell'utente target
+     * AGGIORNATO: Controlli specifici per employee
      */
     private function canResetUserPassword(User $currentUser, User $targetUser): bool
     {
@@ -227,7 +241,7 @@ class PasswordRecoveryController extends Controller
             return $currentUser->id !== $targetUser->id;
         }
 
-        // Employee può resettare solo password dei clienti assegnati
+        // Employee può resettare solo password dei clienti assegnati - CORREZIONE
         if ($currentUser->isEmployee()) {
             return $targetUser->isClient() && $currentUser->canManageClient($targetUser);
         }
@@ -237,6 +251,7 @@ class PasswordRecoveryController extends Controller
 
     /**
      * Verifica se l'utente corrente può gestire l'utente target
+     * AGGIORNATO: Controlli specifici per employee
      */
     private function canManageUser(User $currentUser, User $targetUser): bool
     {
@@ -245,12 +260,62 @@ class PasswordRecoveryController extends Controller
             return $currentUser->id !== $targetUser->id;
         }
 
-        // Employee può gestire solo i clienti assegnati
+        // Employee può gestire solo i clienti assegnati - CORREZIONE
         if ($currentUser->isEmployee()) {
             return $targetUser->isClient() && $currentUser->canManageClient($targetUser);
         }
 
         return false;
+    }
+
+    /**
+     * API endpoint per cercare utenti (per autocompletamento)
+     * AGGIORNATO: Filtri specifici per employee
+     */
+    public function searchUsers(Request $request)
+    {
+        $currentUser = Auth::user();
+        $search = $request->get('q', '');
+
+        if (strlen($search) < 2) {
+            return response()->json([]);
+        }
+
+        if ($currentUser->isAdmin()) {
+            $users = User::where('id', '!=', $currentUser->id)
+                        ->where('is_active', true)
+                        ->where(function($query) use ($search) {
+                            $query->where('first_name', 'like', "%{$search}%")
+                                  ->orWhere('last_name', 'like', "%{$search}%")
+                                  ->orWhere('email', 'like', "%{$search}%")
+                                  ->orWhere('username', 'like', "%{$search}%");
+                        })
+                        ->select('id', 'first_name', 'last_name', 'email', 'username', 'role')
+                        ->limit(10)
+                        ->get();
+        } else {
+            // Employee vede solo i suoi clienti assegnati - CORREZIONE
+            $users = $currentUser->assignedClients()
+                                 ->where(function($query) use ($search) {
+                                     $query->where('first_name', 'like', "%{$search}%")
+                                           ->orWhere('last_name', 'like', "%{$search}%")
+                                           ->orWhere('email', 'like', "%{$search}%")
+                                           ->orWhere('username', 'like', "%{$search}%");
+                                 })
+                                 ->select('id', 'first_name', 'last_name', 'email', 'username', 'role')
+                                 ->limit(10)
+                                 ->get();
+        }
+
+        return response()->json($users->map(function ($user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->full_name,
+                'email' => $user->email,
+                'username' => $user->username,
+                'role' => ucfirst($user->role),
+            ];
+        }));
     }
 
     /**
@@ -322,55 +387,7 @@ class PasswordRecoveryController extends Controller
     }
 
     /**
-     * API endpoint per cercare utenti (per autocompletamento)
-     */
-    public function searchUsers(Request $request)
-    {
-        $currentUser = Auth::user();
-        $search = $request->get('q', '');
-
-        if (strlen($search) < 2) {
-            return response()->json([]);
-        }
-
-        if ($currentUser->isAdmin()) {
-            $users = User::where('id', '!=', $currentUser->id)
-                        ->where('is_active', true)
-                        ->where(function($query) use ($search) {
-                            $query->where('first_name', 'like', "%{$search}%")
-                                  ->orWhere('last_name', 'like', "%{$search}%")
-                                  ->orWhere('email', 'like', "%{$search}%")
-                                  ->orWhere('username', 'like', "%{$search}%");
-                        })
-                        ->select('id', 'first_name', 'last_name', 'email', 'username', 'role')
-                        ->limit(10)
-                        ->get();
-        } else {
-            $users = $currentUser->assignedClients()
-                                 ->where(function($query) use ($search) {
-                                     $query->where('first_name', 'like', "%{$search}%")
-                                           ->orWhere('last_name', 'like', "%{$search}%")
-                                           ->orWhere('email', 'like', "%{$search}%")
-                                           ->orWhere('username', 'like', "%{$search}%");
-                                 })
-                                 ->select('id', 'first_name', 'last_name', 'email', 'username', 'role')
-                                 ->limit(10)
-                                 ->get();
-        }
-
-        return response()->json($users->map(function ($user) {
-            return [
-                'id' => $user->id,
-                'name' => $user->full_name,
-                'email' => $user->email,
-                'username' => $user->username,
-                'role' => ucfirst($user->role),
-            ];
-        }));
-    }
-
-    /**
-     * Genera credenziali multiple (bulk)
+     * Genera credenziali multiple (bulk) - Solo Admin
      */
     public function bulkReset(Request $request)
     {

@@ -171,7 +171,49 @@ class User extends Authenticatable
      */
     public function canMakeTransfersForClient(User $client): bool
     {
-        return $this->canManageClient($client);
+        if ($this->isAdmin()) {
+            return true; // Admin può fare bonifici per tutti
+        }
+
+        if ($this->isEmployee()) {
+            return $this->canManageClient($client); // SOLO clienti assegnati
+        }
+
+        return false;
+    }
+
+    /**
+     * NUOVO: Verifica se questo employee può fare depositi per il cliente
+     * Employee può fare depositi per TUTTI i clienti (secondo documento)
+     */
+    public function canMakeDepositsForClient(User $client): bool
+    {
+        if ($this->isAdmin()) {
+            return true; // Admin può fare depositi per tutti
+        }
+
+        if ($this->isEmployee()) {
+            return $client->isClient(); // Employee può fare depositi per TUTTI i clienti
+        }
+
+        return false;
+    }
+
+    /**
+     * NUOVO: Verifica se può recuperare credenziali del cliente
+     * Employee può recuperare credenziali SOLO per clienti assegnati
+     */
+    public function canRecoverCredentialsForClient(User $client): bool
+    {
+        if ($this->isAdmin()) {
+            return $client->id !== $this->id; // Admin per tutti tranne se stesso
+        }
+
+        if ($this->isEmployee()) {
+            return $this->canManageClient($client); // SOLO clienti assegnati
+        }
+
+        return false;
     }
 
     /**
@@ -196,11 +238,11 @@ class User extends Authenticatable
     public function getVisibleTransactions()
     {
         if ($this->isAdmin()) {
-            return Transaction::all(); // Admin vede tutto
+            return Transaction::query(); // Admin vede tutto
         }
 
         if ($this->isEmployee()) {
-            // Employee vede solo transazioni dei clienti assegnati
+            // Employee vede solo transazioni dei clienti assegnati - CORREZIONE
             $clientIds = $this->assignedClients()->pluck('users.id');
             $accountIds = Account::whereIn('user_id', $clientIds)->pluck('id');
             
@@ -215,12 +257,66 @@ class User extends Authenticatable
             return $this->account->allTransactions();
         }
 
+        return Transaction::whereRaw('1 = 0'); // Query vuota
+    }
+
+    /**
+     * NUOVO: Ottieni tutti i clienti per cui può fare depositi
+     */
+    public function getClientsForDeposits()
+    {
+        if ($this->isAdmin()) {
+            return User::where('role', 'client')->where('is_active', true)->get();
+        }
+
+        if ($this->isEmployee()) {
+            // Employee può fare depositi per TUTTI i clienti
+            return User::where('role', 'client')->where('is_active', true)->get();
+        }
+
+        return collect();
+    }
+
+    /**
+     * NUOVO: Ottieni clienti per cui può fare bonifici
+     */
+    public function getClientsForTransfers()
+    {
+        if ($this->isAdmin()) {
+            return User::where('role', 'client')->where('is_active', true)->get();
+        }
+
+        if ($this->isEmployee()) {
+            // Employee può fare bonifici SOLO per clienti assegnati
+            return $this->assignedClients;
+        }
+
         return collect();
     }
 
     public function getFullNameAttribute(): string
     {
         return trim($this->first_name . ' ' . $this->last_name);
+    }
+
+    /**
+     * NUOVO: Ottieni clienti per cui può recuperare credenziali
+     */
+    public function getClientsForCredentialRecovery()
+    {
+        if ($this->isAdmin()) {
+            return User::where('role', '!=', 'admin')
+                      ->where('id', '!=', $this->id)
+                      ->where('is_active', true)
+                      ->get();
+        }
+
+        if ($this->isEmployee()) {
+            // Employee può recuperare credenziali SOLO per clienti assegnati
+            return $this->assignedClients;
+        }
+
+        return collect();
     }
 
     /**
