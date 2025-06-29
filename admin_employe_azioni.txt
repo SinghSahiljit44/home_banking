@@ -1,0 +1,15 @@
+ADMIN
+ -Registrare/rimuovere/bloccare sia clienti che employee
+ -Recupero credenziali sia dei client che degli employee
+ -Vedono tutte le transazioni 
+ -Depositi per i clienti
+ -Possono fare i bonifici per i clienti 
+ -Possono vedere quali clienti sono associati a quali employee
+
+EMPLOYEE
+ -Registrare/rimuovere clienti
+ -Recupero credenziali clienti a loro associati
+ -Vedono le transazioni dei clienti a loro associati (quindi quelli che loro hanno registrato o quelli che gli sono stati assegnati dal admin)
+ -Depositi per i clienti (per tutti)
+ -Possono fare bonifici per i clienti a loro associati
+ -Possono vedere quali clienti sono associati a loro 
