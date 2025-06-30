@@ -17,8 +17,6 @@ class AdminTransactionController extends Controller
 
     public function __construct(TransactionService $transactionService)
     {
-        $this->middleware('auth');
-        $this->middleware('role:admin');
         $this->transactionService = $transactionService;
     }
 

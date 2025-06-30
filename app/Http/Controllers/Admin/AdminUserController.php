@@ -17,7 +17,6 @@ class AdminUserController extends Controller
 
     public function __construct(TransactionService $transactionService)
     {
-        $this->middleware('auth');
         $this->transactionService = $transactionService;
     }
 
@@ -26,7 +25,6 @@ class AdminUserController extends Controller
      */
     public function index(Request $request)
     {
-        $this->authorize('manage_users');
 
         $search = $request->input('search');
         $role = $request->input('role');

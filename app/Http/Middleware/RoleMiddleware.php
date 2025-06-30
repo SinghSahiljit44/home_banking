@@ -11,8 +11,6 @@ class RoleMiddleware
 {
     /**
      * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next, string $role): Response
     {
@@ -28,8 +26,8 @@ class RoleMiddleware
             return redirect('/login')->withErrors(['access' => 'Account disattivato.']);
         }
 
-        // Verifica il ruolo
-        if (!$user->hasRole($role)) {
+        // Verifica il ruolo usando il campo 'role' diretto
+        if ($user->role !== $role) {
             // Logout se sta tentando di accedere a un'area non autorizzata
             Auth::logout();
             return redirect('/login')->withErrors(['access' => 'Accesso non autorizzato per questo ruolo.']);

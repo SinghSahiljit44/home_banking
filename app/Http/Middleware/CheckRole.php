@@ -1,5 +1,4 @@
 <?php
-// app/Http/Middleware/CheckRole.php
 
 namespace App\Http\Middleware;
 
@@ -16,8 +15,15 @@ class CheckRole
 
         $user = auth()->user();
         
+        // Verifica se l'utente è attivo
+        if (!$user->is_active) {
+            auth()->logout();
+            return redirect('/login')->withErrors(['access' => 'Account disattivato.']);
+        }
+        
+        // Verifica se il ruolo dell'utente è in quelli permessi
         foreach ($roles as $role) {
-            if ($user->hasRole($role)) {
+            if ($user->role === $role) {
                 return $next($request);
             }
         }
