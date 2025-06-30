@@ -18,8 +18,6 @@ class EmployeeClientController extends Controller
 
     public function __construct(TransactionService $transactionService)
     {
-        $this->middleware('auth');
-        $this->middleware('role:employee');
         $this->transactionService = $transactionService;
     }
 
@@ -72,8 +70,8 @@ class EmployeeClientController extends Controller
                 'email_verified_at' => now(),
             ]);
 
-            // Assegna il ruolo Spatie
-            $client->assignRole('client');
+            // RIMOSSO assignRole perché non è configurato nel progetto
+            // $client->assignRole('client');
 
             // Auto-assegna il cliente a questo employee se richiesto
             if ($request->boolean('auto_assign')) {
@@ -112,47 +110,6 @@ class EmployeeClientController extends Controller
             return back()->withErrors(['general' => 'Errore durante la creazione del cliente.'])->withInput();
         }
     }
-
-    /**
-     * AGGIORNATO: Rimuove un cliente assegnato (solo disattivazione)
-     */
-    public function removeClient(User $client)
-    {
-        $employee = Auth::user();
-
-        if (!$employee->canManageClient($client)) {
-            abort(403, 'Non hai accesso a questo cliente.');
-        }
-
-        try {
-            // Disattiva il cliente
-            $client->update(['is_active' => false]);
-
-            // Disattiva anche il conto se presente
-            if ($client->account) {
-                $client->account->update(['is_active' => false]);
-            }
-
-            // Log dell'operazione
-            \Log::info('Client removed by employee:', [
-                'employee_id' => $employee->id,
-                'employee_name' => $employee->full_name,
-                'client_id' => $client->id,
-                'client_name' => $client->full_name,
-            ]);
-
-            return back()->with('success', "Cliente {$client->full_name} disattivato con successo.");
-
-        } catch (\Exception $e) {
-            \Log::error('Client removal failed:', [
-                'employee_id' => $employee->id,
-                'client_id' => $client->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return back()->withErrors(['general' => 'Errore durante la disattivazione del cliente.']);
-        }
-    
 
     /**
      * Modifica un cliente assegnato
@@ -348,6 +305,76 @@ class EmployeeClientController extends Controller
     }
 
     /**
+     * AGGIORNATO: Blocca/sblocca un cliente assegnato
+     */
+    public function toggleClientStatus(User $client)
+    {
+        $employee = Auth::user();
+
+        if (!$employee->canManageClient($client)) {
+            abort(403, 'Non hai accesso a questo cliente.');
+        }
+
+        $oldStatus = $client->is_active;
+        $client->update(['is_active' => !$client->is_active]);
+
+        $status = $client->is_active ? 'attivato' : 'disattivato';
+
+        // Log dell'operazione
+        \Log::info('Client status changed by employee:', [
+            'employee_id' => $employee->id,
+            'employee_name' => $employee->full_name,
+            'client_id' => $client->id,
+            'client_name' => $client->full_name,
+            'old_status' => $oldStatus,
+            'new_status' => $client->is_active,
+        ]);
+
+        return back()->with('success', "Cliente {$status} con successo.");
+    }
+
+    /**
+     * AGGIORNATO: Rimuove un cliente assegnato (solo disattivazione)
+     */
+    public function removeClient(User $client)
+    {
+        $employee = Auth::user();
+
+        if (!$employee->canManageClient($client)) {
+            abort(403, 'Non hai accesso a questo cliente.');
+        }
+
+        try {
+            // Disattiva il cliente
+            $client->update(['is_active' => false]);
+
+            // Disattiva anche il conto se presente
+            if ($client->account) {
+                $client->account->update(['is_active' => false]);
+            }
+
+            // Log dell'operazione
+            \Log::info('Client removed by employee:', [
+                'employee_id' => $employee->id,
+                'employee_name' => $employee->full_name,
+                'client_id' => $client->id,
+                'client_name' => $client->full_name,
+            ]);
+
+            return back()->with('success', "Cliente {$client->full_name} disattivato con successo.");
+
+        } catch (\Exception $e) {
+            \Log::error('Client removal failed:', [
+                'employee_id' => $employee->id,
+                'client_id' => $client->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['general' => 'Errore durante la disattivazione del cliente.']);
+        }
+    }
+
+    /**
      * Metodo privato per creare un conto
      */
     private function createAccountForUser(User $user, float $initialBalance = 0): Account
@@ -394,34 +421,5 @@ class EmployeeClientController extends Controller
         
         $checksum = 98 - bcmod($numericString, '97');
         return str_pad($checksum, 2, '0', STR_PAD_LEFT);
-    }
-
-    /**
-     * AGGIORNATO: Blocca/sblocca un cliente assegnato
-     */
-    public function toggleClientStatus(User $client)
-    {
-        $employee = Auth::user();
-
-        if (!$employee->canManageClient($client)) {
-            abort(403, 'Non hai accesso a questo cliente.');
-        }
-
-        $oldStatus = $client->is_active;
-        $client->update(['is_active' => !$client->is_active]);
-
-        $status = $client->is_active ? 'attivato' : 'disattivato';
-
-        // Log dell'operazione
-        \Log::info('Client status changed by employee:', [
-            'employee_id' => $employee->id,
-            'employee_name' => $employee->full_name,
-            'client_id' => $client->id,
-            'client_name' => $client->full_name,
-            'old_status' => $oldStatus,
-            'new_status' => $client->is_active,
-        ]);
-
-        return back()->with('success', "Cliente {$status} con successo.");
     }
 }
