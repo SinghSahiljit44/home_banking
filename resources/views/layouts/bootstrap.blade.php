@@ -52,6 +52,8 @@
                                     <li><a class="dropdown-item" href="{{ route('dashboard.admin') }}">Dashboard Admin</a></li>
                                 @elseif(Auth::user()->isClient())
                                     <li><a class="dropdown-item" href="{{ route('dashboard.cliente') }}">Dashboard Cliente</a></li>
+                                @elseif(Auth::user()->isEmployee())
+                                    <li><a class="dropdown-item" href="{{ route('dashboard.employee') }}">Dashboard Employee</a></li>
                                 @endif
                                 <li><hr class="dropdown-divider"></li>
                                 <li>

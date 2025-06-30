@@ -69,7 +69,7 @@ class User extends Authenticatable
     // RELAZIONI PER EMPLOYEE-CLIENT ASSIGNMENTS - CORRETTE
 
     /**
-     * Clienti assegnati a questo employee (relazione many-to-many)
+     * Clienti assegnati a questo employee (relazione many-to-many) - FIXED
      */
     public function assignedClients(): BelongsToMany
     {
@@ -82,11 +82,12 @@ class User extends Authenticatable
         ->withPivot(['assigned_by', 'is_active', 'notes', 'assigned_at'])
         ->withTimestamps()
         ->wherePivot('is_active', true)
-        ->where('role', 'client'); // Assicura che siano solo clienti
+        ->where('users.role', 'client') // Specifica la tabella per role
+        ->where('users.is_active', true); // Specifica la tabella per is_active
     }
 
     /**
-     * Employee a cui è assegnato questo cliente
+     * Employee a cui è assegnato questo cliente - FIXED
      */
     public function assignedEmployees(): BelongsToMany
     {
@@ -99,7 +100,8 @@ class User extends Authenticatable
         ->withPivot(['assigned_by', 'is_active', 'notes', 'assigned_at'])
         ->withTimestamps()
         ->wherePivot('is_active', true)
-        ->where('role', 'employee'); // Assicura che siano solo employee
+        ->where('users.role', 'employee') // Specifica la tabella per role
+        ->where('users.is_active', true); // Specifica la tabella per is_active
     }
 
     /**
@@ -296,7 +298,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Ottieni tutti i clienti gestibili da questo utente
+     * Ottieni tutti i clienti gestibili da questo utente - ALTERNATIVO SICURO
      */
     public function getManageableClients()
     {
@@ -310,7 +312,10 @@ class User extends Authenticatable
                                                 ->where('is_active', true)
                                                 ->pluck('client_id');
             
-            return User::whereIn('id', $clientIds)->where('role', 'client')->get();
+            return User::whereIn('id', $clientIds)
+                      ->where('role', 'client')
+                      ->where('is_active', true)
+                      ->get();
         }
 
         return collect(); // I clienti non possono gestire altri clienti
@@ -382,7 +387,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Ottieni clienti per cui può recuperare credenziali
+     * Ottieni clienti per cui può recuperare credenziali - METODO SICURO
      */
     public function getClientsForCredentialRecovery()
     {
@@ -395,7 +400,15 @@ class User extends Authenticatable
 
         if ($this->isEmployee()) {
             // Employee può recuperare credenziali SOLO per clienti assegnati
-            return $this->getManageableClients();
+            // Usa query diretta per evitare ambiguità
+            $clientIds = EmployeeClientAssignment::where('employee_id', $this->id)
+                                                ->where('is_active', true)
+                                                ->pluck('client_id');
+            
+            return User::whereIn('id', $clientIds)
+                      ->where('role', 'client')
+                      ->where('is_active', true)
+                      ->get();
         }
 
         return collect();

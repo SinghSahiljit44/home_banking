@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\EmployeeClientAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -18,20 +19,27 @@ class PasswordRecoveryController extends Controller
 
     /**
      * Mostra il form per il recupero credenziali
-     * AGGIORNATO: Employee vede solo clienti assegnati
+     * AGGIORNATO: Employee vede solo clienti assegnati - FIXED QUERY
      */
     public function index(Request $request)
     {
         $currentUser = Auth::user();
         
-        // Lista utenti disponibili in base al ruolo - AGGIORNATO
+        // Lista utenti disponibili in base al ruolo - AGGIORNATO CON QUERY SICURA
         if ($currentUser->isAdmin()) {
             // Admin vede tutti gli utenti tranne se stesso
             $query = User::where('id', '!=', $currentUser->id)
                         ->where('is_active', true);
         } else {
             // Employee vede solo i suoi clienti assegnati - CORREZIONE PRINCIPALE
-            $query = $currentUser->assignedClients()->where('is_active', true);
+            // Usa query diretta invece della relazione per evitare ambiguità
+            $clientIds = EmployeeClientAssignment::where('employee_id', $currentUser->id)
+                                                ->where('is_active', true)
+                                                ->pluck('client_id');
+            
+            $query = User::whereIn('id', $clientIds)
+                        ->where('role', 'client')
+                        ->where('is_active', true);
         }
 
         // Applica filtri
@@ -49,12 +57,7 @@ class PasswordRecoveryController extends Controller
             $query->where('role', $request->get('role'));
         }
 
-        if ($currentUser->isAdmin()) {
-            $users = $query->orderBy('role')->orderBy('last_name')->get();
-        } else {
-            // Per employee, ottieni la collection dai clienti assegnati
-            $users = $query->orderBy('last_name')->get();
-        }
+        $users = $query->orderBy('role')->orderBy('last_name')->get();
 
         // Statistiche
         $stats = [
@@ -221,7 +224,7 @@ class PasswordRecoveryController extends Controller
 
     /**
      * Verifica se l'utente corrente può resettare la password dell'utente target
-     * AGGIORNATO: Controlli specifici per employee
+     * AGGIORNATO: Controlli specifici per employee - FIXED
      */
     private function canResetUserPassword(User $currentUser, User $targetUser): bool
     {
@@ -240,7 +243,7 @@ class PasswordRecoveryController extends Controller
 
     /**
      * Verifica se l'utente corrente può gestire l'utente target
-     * AGGIORNATO: Controlli specifici per employee
+     * AGGIORNATO: Controlli specifici per employee - FIXED
      */
     private function canManageUser(User $currentUser, User $targetUser): bool
     {
@@ -259,7 +262,7 @@ class PasswordRecoveryController extends Controller
 
     /**
      * API endpoint per cercare utenti (per autocompletamento)
-     * AGGIORNATO: Filtri specifici per employee
+     * AGGIORNATO: Filtri specifici per employee - FIXED QUERY
      */
     public function searchUsers(Request $request)
     {
@@ -283,17 +286,23 @@ class PasswordRecoveryController extends Controller
                         ->limit(10)
                         ->get();
         } else {
-            // Employee vede solo i suoi clienti assegnati - CORREZIONE
-            $users = $currentUser->assignedClients()
-                                 ->where(function($query) use ($search) {
-                                     $query->where('first_name', 'like', "%{$search}%")
-                                           ->orWhere('last_name', 'like', "%{$search}%")
-                                           ->orWhere('email', 'like', "%{$search}%")
-                                           ->orWhere('username', 'like', "%{$search}%");
-                                 })
-                                 ->select('id', 'first_name', 'last_name', 'email', 'username', 'role')
-                                 ->limit(10)
-                                 ->get();
+            // Employee vede solo i suoi clienti assegnati - CORREZIONE CON QUERY DIRETTA
+            $clientIds = EmployeeClientAssignment::where('employee_id', $currentUser->id)
+                                                ->where('is_active', true)
+                                                ->pluck('client_id');
+            
+            $users = User::whereIn('id', $clientIds)
+                        ->where('role', 'client')
+                        ->where('is_active', true)
+                        ->where(function($query) use ($search) {
+                            $query->where('first_name', 'like', "%{$search}%")
+                                  ->orWhere('last_name', 'like', "%{$search}%")
+                                  ->orWhere('email', 'like', "%{$search}%")
+                                  ->orWhere('username', 'like', "%{$search}%");
+                        })
+                        ->select('id', 'first_name', 'last_name', 'email', 'username', 'role')
+                        ->limit(10)
+                        ->get();
         }
 
         return response()->json($users->map(function ($user) {
