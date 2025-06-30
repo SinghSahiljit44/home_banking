@@ -61,7 +61,6 @@ class AdminUserController extends Controller
      */
     public function create()
     {
-        $this->authorize('manage_users');
         return view('admin.users.create');
     }
 
@@ -70,7 +69,6 @@ class AdminUserController extends Controller
      */
     public function store(Request $request)
     {
-        $this->authorize('manage_users');
 
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:50',
@@ -133,8 +131,6 @@ class AdminUserController extends Controller
      */
     public function show(User $user)
     {
-        $this->authorize('manage_users');
-        
         $user->load(['account', 'securityQuestion']);
         
         // Statistiche transazioni se ha un conto
@@ -156,7 +152,6 @@ class AdminUserController extends Controller
      */
     public function edit(User $user)
     {
-        $this->authorize('manage_users');
         return view('admin.users.edit', compact('user'));
     }
 
@@ -165,8 +160,6 @@ class AdminUserController extends Controller
      */
     public function update(Request $request, User $user)
     {
-        $this->authorize('manage_users');
-
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:50',
             'last_name' => 'required|string|max:50',
@@ -207,8 +200,6 @@ class AdminUserController extends Controller
      */
     public function destroy(User $user)
     {
-        $this->authorize('manage_users');
-
         if ($user->isAdmin()) {
             return back()->withErrors(['general' => 'Impossibile eliminare un amministratore.']);
         }
@@ -239,8 +230,6 @@ class AdminUserController extends Controller
      */
     public function createAccount(User $user)
     {
-        $this->authorize('manage_users');
-
         if ($user->account) {
             return back()->withErrors(['general' => 'L\'utente ha già un conto associato.']);
         }
@@ -265,8 +254,6 @@ class AdminUserController extends Controller
      */
     public function toggleAccountStatus(User $user)
     {
-        $this->authorize('manage_users');
-
         if (!$user->account) {
             return back()->withErrors(['general' => 'L\'utente non ha un conto associato.']);
         }
@@ -285,8 +272,6 @@ class AdminUserController extends Controller
      */
     public function deposit(Request $request, User $user)
     {
-        $this->authorize('manage_users');
-
         $request->validate([
             'amount' => 'required|numeric|min:0.01|max:100000',
             'description' => 'required|string|max:255',
@@ -365,8 +350,6 @@ class AdminUserController extends Controller
      */
     public function toggleUserStatus(User $user)
     {
-        $this->authorize('manage_users');
-
         if ($user->isAdmin() && $user->id !== auth()->id()) {
             return back()->withErrors(['error' => 'Non puoi modificare lo stato di altri amministratori.']);
         }
@@ -398,8 +381,6 @@ class AdminUserController extends Controller
      */
     public function removeUser(User $user)
     {
-        $this->authorize('manage_users');
-
         if ($user->isAdmin()) {
             return back()->withErrors(['error' => 'Non puoi rimuovere un amministratore.']);
         }

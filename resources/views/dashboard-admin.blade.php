@@ -16,7 +16,7 @@
                         <i class="fas fa-user-circle me-1"></i>{{ Auth::user()->full_name }}
                     </button>
                     <ul class="dropdown-menu dropdown-menu-dark">
-                        <li><a class="dropdown-item" href="{{ route('client.profile.show') }}">
+                        <li><a class="dropdown-item" href="{{ route('profile.show') }}">
                             <i class="fas fa-user me-2"></i>Profilo
                         </a></li>
                         <li><hr class="dropdown-divider"></li>
@@ -157,70 +157,6 @@
                     <a href="{{ route('admin.accounts.index') }}" class="btn btn-secondary">
                         Accedi
                     </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Azioni Rapide -->
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card bg-transparent border-light">
-                <div class="card-header">
-                    <h5><i class="fas fa-plus-circle me-2"></i>Azioni Rapide</h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
-                            <i class="fas fa-user-plus me-2"></i>Crea Nuovo Utente
-                        </a>
-                        <a href="{{ route('admin.assignments.index') }}" class="btn btn-info">
-                            <i class="fas fa-link me-2"></i>Gestisci Assegnazioni
-                        </a>
-                        <a href="{{ route('admin.transactions.index') }}" class="btn btn-success">
-                            <i class="fas fa-list me-2"></i>Visualizza Transazioni
-                        </a>
-                        <a href="{{ route('admin.password-recovery.index') }}" class="btn btn-warning">
-                            <i class="fas fa-key me-2"></i>Recupero Credenziali
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-6">
-            <div class="card bg-transparent border-light">
-                <div class="card-header">
-                    <h5><i class="fas fa-exclamation-triangle me-2"></i>Allerte Sistema</h5>
-                </div>
-                <div class="card-body">
-                    <div class="list-group list-group-flush">
-                        @if(App\Models\Transaction::where('status', 'pending')->count() > 0)
-                            <div class="list-group-item bg-transparent border-warning">
-                                <i class="fas fa-clock text-warning me-2"></i>
-                                {{ App\Models\Transaction::where('status', 'pending')->count() }} transazioni in sospeso
-                            </div>
-                        @endif
-                        
-                        @if(App\Models\User::where('is_active', false)->where('role', 'client')->count() > 0)
-                            <div class="list-group-item bg-transparent border-danger">
-                                <i class="fas fa-user-slash text-danger me-2"></i>
-                                {{ App\Models\User::where('is_active', false)->where('role', 'client')->count() }} clienti disattivati
-                            </div>
-                        @endif
-                        
-                        @if(App\Models\User::where('role', 'client')->doesntHave('assignedEmployees')->count() > 0)
-                            <div class="list-group-item bg-transparent border-info">
-                                <i class="fas fa-user-question text-info me-2"></i>
-                                {{ App\Models\User::where('role', 'client')->doesntHave('assignedEmployees')->count() }} clienti non assegnati
-                            </div>
-                        @endif
-                        
-                        <div class="list-group-item bg-transparent border-secondary">
-                            <i class="fas fa-calendar text-muted me-2"></i>
-                            Sistema aggiornato: {{ date('d/m/Y') }}
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

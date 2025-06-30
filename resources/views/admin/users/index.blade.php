@@ -197,17 +197,31 @@
                 </div>
 
                 <!-- Paginazione -->
-                <div class="d-flex justify-content-center mt-3">
-                    {{ $users->links() }}
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-3 gap-2">
+                    <div class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Visualizzati {{ $users->firstItem() ?? 0 }} - {{ $users->lastItem() ?? 0 }} 
+                        di {{ $users->total() }} utenti
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        @if($users->hasPages())
+                            <small class="text-muted me-2">Pagina:</small>
+                            <nav aria-label="Paginazione movimenti">
+                                {{ $users->links('pagination::bootstrap-4') }}
+                            </nav>
+                        @endif
+                    </div>
                 </div>
             @else
                 <div class="text-center py-5">
-                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                    <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
                     <h5 class="text-muted">Nessun utente trovato</h5>
                     <p class="text-muted">Non ci sono utenti che corrispondono ai filtri selezionati.</p>
-                    <a href="{{ route('admin.users.create') }}" class="btn btn-success">
-                        <i class="fas fa-plus me-1"></i>Crea il primo utente
-                    </a>
+                    @if(request()->hasAny(['date_from', 'date_to', 'type', 'min_amount', 'max_amount']))
+                        <a href="{{ route('client.account.show') }}" class="btn btn-primary">
+                            <i class="fas fa-eye me-1"></i>Visualizza tutti gli utenti
+                        </a>
+                    @endif
                 </div>
             @endif
         </div>

@@ -11,9 +11,7 @@ use App\Models\Transaction;
 class AdminDashboardController extends Controller
 {
     public function index()
-    {
-        $this->authorize('manage_users');
-        
+    {        
         $stats = [
             'total_users' => User::count(),
             'total_accounts' => Account::count(),
@@ -21,6 +19,6 @@ class AdminDashboardController extends Controller
             'pending_transactions' => Transaction::where('status', 'pending')->count(),
         ];
         
-        return view('admin.dashboard', compact('stats'));
+        return view('dashboard.admin', compact('stats'));
     }
 }

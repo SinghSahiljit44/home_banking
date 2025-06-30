@@ -8,7 +8,7 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-exchange-alt me-2"></i>Gestione Transazioni</h2>
-                <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-light">
+                <a href="{{ route('dashboard.admin') }}" class="btn btn-outline-light">
                     <i class="fas fa-arrow-left me-1"></i>Dashboard Admin
                 </a>
             </div>
@@ -254,14 +254,31 @@
                 </div>
 
                 <!-- Paginazione -->
-                <div class="d-flex justify-content-center mt-3">
-                    {{ $transactions->links() }}
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-3 gap-2">
+                    <div class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Visualizzati {{ $transactions->firstItem() ?? 0 }} - {{ $transactions->lastItem() ?? 0 }} 
+                        di {{ $transactions->total() }} movimenti
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        @if($transactions->hasPages())
+                            <small class="text-muted me-2">Pagina:</small>
+                            <nav aria-label="Paginazione movimenti">
+                                {{ $transactions->links('pagination::bootstrap-4') }}
+                            </nav>
+                        @endif
+                    </div>
                 </div>
             @else
                 <div class="text-center py-5">
-                    <i class="fas fa-exchange-alt fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">Nessuna transazione trovata</h5>
+                    <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Nessun movimento trovato</h5>
                     <p class="text-muted">Non ci sono transazioni che corrispondono ai filtri selezionati.</p>
+                    @if(request()->hasAny(['date_from', 'date_to', 'type', 'min_amount', 'max_amount']))
+                        <a href="{{ route('client.account.show') }}" class="btn btn-primary">
+                            <i class="fas fa-eye me-1"></i>Visualizza tutti i movimenti
+                        </a>
+                    @endif
                 </div>
             @endif
         </div>
