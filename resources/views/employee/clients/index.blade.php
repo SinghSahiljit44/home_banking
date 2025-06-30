@@ -12,7 +12,7 @@
                     <a href="{{ route('employee.clients.create') }}" class="btn btn-success me-2">
                         <i class="fas fa-plus me-1"></i>Registra Cliente
                     </a>
-                    <a href="{{ route('employee.dashboard') }}" class="btn btn-outline-light">
+                    <a href="{{ route('dashboard.employee') }}" class="btn btn-outline-light">
                         <i class="fas fa-arrow-left me-1"></i>Dashboard
                     </a>
                 </div>
@@ -237,6 +237,7 @@
     </div>
 </div>
 
+
 <style>
 .avatar-sm {
     width: 32px;
@@ -264,47 +265,4 @@ document.querySelectorAll('[id^="recipient_iban"]').forEach(input => {
     });
 });
 </script>
-@endsection class="text-primary">{{ $user->assignedClients()->count() }}</h4>
-                                        <p class="mb-0">Clienti Assegnati</p>
-                                    </div>
-                                    <div class="col-md-4 text-center">
-                                        <h4 class="text-success">
-                                            {{ $user->assignedClients()->whereHas('account', function($q) { 
-                                                $q->where('is_active', true); 
-                                            })->count() }}
-                                        </h4>
-                                        <p class="mb-0">Conti Attivi</p>
-                                    </div>
-                                    <div class="col-md-4 text-center">
-                                        <h4 class="text-info">
-                                            €{{ number_format($user->assignedClients()->whereHas('account')->get()->sum(function($client) { 
-                                                return $client->account->balance ?? 0; 
-                                            }), 2, ',', '.') }}
-                                        </h4>
-                                        <p class="mb-0">Saldo Gestito</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-
-                    <!-- Azioni -->
-                    <div class="d-flex gap-2 flex-wrap">
-                        <a href="{{ route('client.profile.edit') }}" class="btn btn-warning">
-                            <i class="fas fa-edit me-2"></i>Modifica Profilo
-                        </a>
-                        <a href="{{ route('client.profile.change-password') }}" class="btn btn-outline-warning">
-                            <i class="fas fa-key me-2"></i>Cambia Password
-                        </a>
-                        @if($user->isClient())
-                            <a href="{{ route('client.security.questions') }}" class="btn btn-outline-info">
-                                <i class="fas fa-shield-alt me-2"></i>Sicurezza
-                            </a>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 @endsection

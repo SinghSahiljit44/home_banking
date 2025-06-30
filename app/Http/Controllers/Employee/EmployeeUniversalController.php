@@ -15,8 +15,6 @@ class EmployeeUniversalController extends Controller
 
     public function __construct(TransactionService $transactionService)
     {
-        $this->middleware('auth');
-        $this->middleware('role:employee');
         $this->transactionService = $transactionService;
     }
 

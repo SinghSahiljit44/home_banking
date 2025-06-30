@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Account;
 use App\Models\Transaction;
+use App\Models\EmployeeClientAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,8 +14,6 @@ class EmployeeDashboardController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth');
-        $this->middleware('role:employee');
     }
 
     /**
@@ -24,10 +23,14 @@ class EmployeeDashboardController extends Controller
     {
         $employee = Auth::user();
         
-        // Clienti assegnati
-        $assignedClients = $employee->assignedClients()
-                                   ->with('account')
-                                   ->paginate(10);
+        // Clienti assegnati usando query diretta per evitare problemi con le relazioni
+        $assignedClientIds = EmployeeClientAssignment::where('employee_id', $employee->id)
+                                                    ->where('is_active', true)
+                                                    ->pluck('client_id');
+        
+        $assignedClients = User::whereIn('id', $assignedClientIds)
+                              ->with('account')
+                              ->paginate(10);
 
         // Statistiche
         $stats = $this->getEmployeeStats($employee);
@@ -53,7 +56,12 @@ class EmployeeDashboardController extends Controller
     {
         $employee = Auth::user();
         
-        $query = $employee->assignedClients()->with('account');
+        // Query diretta per evitare problemi con le relazioni
+        $assignedClientIds = EmployeeClientAssignment::where('employee_id', $employee->id)
+                                                    ->where('is_active', true)
+                                                    ->pluck('client_id');
+        
+        $query = User::whereIn('id', $assignedClientIds)->with('account');
 
         // Filtri
         if ($request->filled('search')) {
@@ -92,8 +100,13 @@ class EmployeeDashboardController extends Controller
     {
         $employee = Auth::user();
 
-        // Verifica che il cliente sia assegnato a questo employee
-        if (!$employee->canManageClient($client)) {
+        // Verifica che il cliente sia assegnato a questo employee usando query diretta
+        $isAssigned = EmployeeClientAssignment::where('employee_id', $employee->id)
+                                             ->where('client_id', $client->id)
+                                             ->where('is_active', true)
+                                             ->exists();
+
+        if (!$isAssigned) {
             abort(403, 'Non hai accesso a questo cliente.');
         }
 
@@ -126,12 +139,22 @@ class EmployeeDashboardController extends Controller
     {
         $employee = Auth::user();
         
-        $query = $employee->getVisibleTransactions();
+        // Usa query diretta per evitare problemi con le relazioni
+        $assignedClientIds = EmployeeClientAssignment::where('employee_id', $employee->id)
+                                                    ->where('is_active', true)
+                                                    ->pluck('client_id');
+        
+        $accountIds = Account::whereIn('user_id', $assignedClientIds)->pluck('id');
+        
+        $query = Transaction::where(function($q) use ($accountIds) {
+            $q->whereIn('from_account_id', $accountIds)
+              ->orWhereIn('to_account_id', $accountIds);
+        });
 
         // Filtri
         if ($request->filled('client_id')) {
             $client = User::find($request->get('client_id'));
-            if ($client && $employee->canViewClientTransactions($client) && $client->account) {
+            if ($client && $assignedClientIds->contains($client->id) && $client->account) {
                 $query->where(function($q) use ($client) {
                     $q->where('from_account_id', $client->account->id)
                       ->orWhere('to_account_id', $client->account->id);
@@ -161,7 +184,7 @@ class EmployeeDashboardController extends Controller
                              ->withQueryString();
 
         // Lista clienti per filtro
-        $assignedClients = $employee->assignedClients;
+        $assignedClients = User::whereIn('id', $assignedClientIds)->get();
 
         return view('employee.transactions.index', compact('transactions', 'assignedClients'));
     }
@@ -175,56 +198,76 @@ class EmployeeDashboardController extends Controller
         
         $stats = $this->getEmployeeStats($employee);
         
-        // Statistiche per cliente
-        $clientStats = $employee->assignedClients()
-                                ->with('account')
-                                ->get()
-                                ->map(function ($client) {
-                                    $clientData = [
-                                        'client' => $client,
-                                        'total_transactions' => 0,
-                                        'total_volume' => 0,
-                                        'last_activity' => null,
-                                        'account_status' => $client->account ? ($client->account->is_active ? 'active' : 'inactive') : 'no_account'
-                                    ];
+        // Statistiche per cliente usando query dirette
+        $assignedClientIds = EmployeeClientAssignment::where('employee_id', $employee->id)
+                                                    ->where('is_active', true)
+                                                    ->pluck('client_id');
+        
+        $clientStats = User::whereIn('id', $assignedClientIds)
+                          ->with('account')
+                          ->get()
+                          ->map(function ($client) {
+                              $clientData = [
+                                  'client' => $client,
+                                  'total_transactions' => 0,
+                                  'total_volume' => 0,
+                                  'last_activity' => null,
+                                  'account_status' => $client->account ? ($client->account->is_active ? 'active' : 'inactive') : 'no_account'
+                              ];
 
-                                    if ($client->account) {
-                                        $transactions = $client->account->allTransactions()->get();
-                                        $clientData['total_transactions'] = $transactions->count();
-                                        $clientData['total_volume'] = $transactions->sum('amount');
-                                        $clientData['last_activity'] = $transactions->first()?->created_at;
-                                    }
+                              if ($client->account) {
+                                  $transactions = $client->account->allTransactions()->get();
+                                  $clientData['total_transactions'] = $transactions->count();
+                                  $clientData['total_volume'] = $transactions->sum('amount');
+                                  $clientData['last_activity'] = $transactions->first()?->created_at;
+                              }
 
-                                    return $clientData;
-                                });
+                              return $clientData;
+                          });
 
         return view('employee.statistics', compact('stats', 'clientStats'));
     }
 
     /**
-     * Calcola statistiche per l'employee
+     * Calcola statistiche per l'employee usando query dirette
      */
     private function getEmployeeStats(User $employee): array
     {
-        $assignedClientsCount = $employee->assignedClients()->count();
-        $activeAccountsCount = $employee->assignedClients()
-                                       ->whereHas('account', function($q) {
-                                           $q->where('is_active', true);
-                                       })->count();
+        $assignedClientIds = EmployeeClientAssignment::where('employee_id', $employee->id)
+                                                    ->where('is_active', true)
+                                                    ->pluck('client_id');
 
+        $assignedClientsCount = $assignedClientIds->count();
+        
+        $activeAccountsCount = User::whereIn('id', $assignedClientIds)
+                                  ->whereHas('account', function($q) {
+                                      $q->where('is_active', true);
+                                  })->count();
+
+        $accountIds = Account::whereIn('user_id', $assignedClientIds)->pluck('id');
+        
         $totalTransactions = 0;
         $totalVolume = 0;
         $totalBalance = 0;
         $transactionsToday = 0;
 
-        foreach ($employee->assignedClients as $client) {
-            if ($client->account) {
-                $transactions = $client->account->allTransactions();
-                $totalTransactions += $transactions->count();
-                $totalVolume += $transactions->sum('amount');
-                $totalBalance += $client->account->balance;
-                $transactionsToday += $transactions->whereDate('created_at', today())->count();
-            }
+        if ($accountIds->isNotEmpty()) {
+            $totalTransactions = Transaction::where(function($query) use ($accountIds) {
+                $query->whereIn('from_account_id', $accountIds)
+                      ->orWhereIn('to_account_id', $accountIds);
+            })->count();
+
+            $totalVolume = Transaction::where(function($query) use ($accountIds) {
+                $query->whereIn('from_account_id', $accountIds)
+                      ->orWhereIn('to_account_id', $accountIds);
+            })->sum('amount');
+
+            $totalBalance = Account::whereIn('id', $accountIds)->sum('balance');
+
+            $transactionsToday = Transaction::where(function($query) use ($accountIds) {
+                $query->whereIn('from_account_id', $accountIds)
+                      ->orWhereIn('to_account_id', $accountIds);
+            })->whereDate('created_at', today())->count();
         }
 
         return [
@@ -243,21 +286,36 @@ class EmployeeDashboardController extends Controller
      */
     private function getRecentClientTransactions(User $employee)
     {
-        return $employee->getVisibleTransactions()
-                        ->with(['fromAccount.user', 'toAccount.user'])
-                        ->orderBy('created_at', 'desc')
-                        ->take(10)
-                        ->get();
+        $assignedClientIds = EmployeeClientAssignment::where('employee_id', $employee->id)
+                                                    ->where('is_active', true)
+                                                    ->pluck('client_id');
+        
+        $accountIds = Account::whereIn('user_id', $assignedClientIds)->pluck('id');
+        
+        return Transaction::where(function($query) use ($accountIds) {
+                    $query->whereIn('from_account_id', $accountIds)
+                          ->orWhereIn('to_account_id', $accountIds);
+                })
+                ->with(['fromAccount.user', 'toAccount.user'])
+                ->orderBy('created_at', 'desc')
+                ->take(10)
+                ->get();
     }
 
     /**
-     * Ottiene alert/problemi dei clienti
+     * Ottiene alert/problemi dei clienti usando query dirette
      */
     private function getClientAlerts(User $employee): array
     {
         $alerts = [];
 
-        foreach ($employee->assignedClients as $client) {
+        $assignedClientIds = EmployeeClientAssignment::where('employee_id', $employee->id)
+                                                    ->where('is_active', true)
+                                                    ->pluck('client_id');
+
+        $clients = User::whereIn('id', $assignedClientIds)->with('account')->get();
+
+        foreach ($clients as $client) {
             // Cliente senza conto
             if (!$client->account) {
                 $alerts[] = [

@@ -8,7 +8,7 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-coins me-2"></i>Depositi - Tutti i Clienti</h2>
-                <a href="{{ route('employee.dashboard') }}" class="btn btn-outline-light">
+                <a href="{{ route('dashboard.employee') }}" class="btn btn-outline-light">
                     <i class="fas fa-arrow-left me-1"></i>Dashboard Employee
                 </a>
             </div>
