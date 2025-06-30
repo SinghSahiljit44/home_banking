@@ -67,7 +67,7 @@
                     <h5><i class="fas fa-list me-2"></i>Report Disponibili</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
+                    <div class="row justify-content-center">
                         <div class="col-md-4 mb-3">
                             <div class="card bg-dark border-secondary h-100">
                                 <div class="card-body text-center">
@@ -89,18 +89,6 @@
                                     <a href="{{ route('admin.reports.users') }}" class="btn btn-info btn-sm">
                                         Visualizza Report
                                     </a>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="card bg-dark border-secondary h-100">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-university fa-3x text-success mb-3"></i>
-                                    <h6>Report Conti</h6>
-                                    <p class="small text-muted">Analisi dei conti correnti</p>
-                                    <button class="btn btn-success btn-sm" disabled>
-                                        In Sviluppo
-                                    </button>
                                 </div>
                             </div>
                         </div>
