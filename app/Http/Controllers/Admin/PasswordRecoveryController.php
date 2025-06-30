@@ -14,17 +14,6 @@ class PasswordRecoveryController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            $user = Auth::user();
-            
-            // Solo admin e employee possono recuperare credenziali
-            if (!$user->isAdmin() && !$user->isEmployee()) {
-                abort(403, 'Accesso non autorizzato');
-            }
-            
-            return $next($request);
-        });
     }
 
     /**

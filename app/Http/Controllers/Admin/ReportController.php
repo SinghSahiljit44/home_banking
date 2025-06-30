@@ -16,8 +16,6 @@ class ReportController extends Controller
      */
     public function index()
     {
-        $this->authorize('manage_users');
-        
         // Statistiche generali
         $stats = [
             'total_users' => User::count(),
@@ -57,8 +55,6 @@ class ReportController extends Controller
      */
     public function transactions(Request $request)
     {
-        $this->authorize('manage_users');
-        
         $query = Transaction::with(['fromAccount.user', 'toAccount.user']);
 
         // Filtri
@@ -95,9 +91,7 @@ class ReportController extends Controller
      * Report utenti
      */
     public function users(Request $request)
-    {
-        $this->authorize('manage_users');
-        
+    {        
         $query = User::with('account');
 
         // Filtri
@@ -127,9 +121,7 @@ class ReportController extends Controller
      * Esporta report in CSV
      */
     public function exportTransactions(Request $request)
-    {
-        $this->authorize('manage_users');
-        
+    {        
         $query = Transaction::with(['fromAccount.user', 'toAccount.user']);
 
         // Applica gli stessi filtri del report
