@@ -233,19 +233,80 @@
     <div class="modal-dialog">
         <div class="modal-content bg-dark">
             <div class="modal-header">
-                <h5 class="modal-title">Conferma Eliminazione</h5>
+                <h5 class="modal-title text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Eliminazione Permanente
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p>Sei sicuro di voler eliminare questo utente?</p>
-                <p class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Questa azione disattiverà l'utente e il suo conto.</p>
+                <div class="alert alert-danger">
+                    <i class="fas fa-skull-crossbones me-2"></i>
+                    <strong>ATTENZIONE: ELIMINAZIONE PERMANENTE</strong>
+                    <br>
+                    <small>Questa operazione eliminerà completamente tutti i dati dal database.</small>
+                </div>
+                
+                <p><strong>Utente da eliminare:</strong></p>
+                <ul>
+                    <li><strong>Nome:</strong> {{ $user->full_name }}</li>
+                    <li><strong>Email:</strong> {{ $user->email }}</li>
+                    <li><strong>Username:</strong> {{ $user->username }}</li>
+                    <li><strong>Ruolo:</strong> {{ ucfirst($user->role) }}</li>
+                </ul>
+                
+                @if($user->account)
+                    <div class="alert alert-warning">
+                        <i class="fas fa-university me-2"></i>
+                        <strong>Conto Corrente:</strong>
+                        <br>
+                        <small>Numero: {{ $user->account->account_number }}</small>
+                        <br>
+                        <small>IBAN: {{ $user->account->iban }}</small>
+                        @if($user->account->balance > 0)
+                            <br>
+                            <strong class="text-danger">Saldo: €{{ number_format($user->account->balance, 2, ',', '.') }}</strong>
+                        @else
+                            <br>
+                            <small>Saldo: €0,00</small>
+                        @endif
+                    </div>
+                @endif
+                
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>VERRÀ ELIMINATO DEFINITIVAMENTE:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>L'utente e tutti i suoi dati personali</li>
+                        @if($user->account)
+                            <li>Il conto corrente e tutte le transazioni</li>
+                            @if($user->account->balance > 0)
+                                <li class="text-danger"><strong>Il saldo di €{{ number_format($user->account->balance, 2, ',', '.') }}</strong></li>
+                            @endif
+                        @endif
+                        <li>Tutte le assegnazioni employee-client</li>
+                        <li>I beneficiari salvati</li>
+                        <li>Le domande di sicurezza</li>
+                        <li><strong class="text-danger">TUTTO SARÀ IRRECUPERABILE</strong></li>
+                    </ul>
+                </div>
+
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" id="confirmHardDelete" required>
+                    <label class="form-check-label text-warning" for="confirmHardDelete">
+                        <strong>Confermo di voler eliminare DEFINITIVAMENTE tutti i dati</strong>
+                    </label>
+                </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Annulla
+                </button>
                 <form id="deleteForm" method="POST" class="d-inline">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-danger">Elimina</button>
+                    <button type="submit" class="btn btn-danger" id="confirmDeleteBtn" disabled>
+                        <i class="fas fa-skull-crossbones me-1"></i>ELIMINA DEFINITIVAMENTE
+                    </button>
                 </form>
             </div>
         </div>
@@ -253,9 +314,27 @@
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkbox = document.getElementById('confirmHardDelete');
+    const deleteBtn = document.getElementById('confirmDeleteBtn');
+    
+    if (checkbox && deleteBtn) {
+        checkbox.addEventListener('change', function() {
+            deleteBtn.disabled = !this.checked;
+        });
+    }
+});
+
 function confirmDelete(userId) {
     const form = document.getElementById('deleteForm');
+    const checkbox = document.getElementById('confirmHardDelete');
+    const deleteBtn = document.getElementById('confirmDeleteBtn');
+    
     form.action = `/admin/users/${userId}`;
+    
+    // Reset checkbox e button
+    if (checkbox) checkbox.checked = false;
+    if (deleteBtn) deleteBtn.disabled = true;
     
     const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
     modal.show();

@@ -266,7 +266,7 @@ class AdminUserController extends Controller
     {
         $currentUser = Auth::user();
 
-        // CONTROLLI MIGLIORATI
+        // CONTROLLI DI SICUREZZA
         if ($user->isAdmin()) {
             return back()->withErrors(['error' => 'Impossibile eliminare un amministratore.']);
         }
@@ -278,47 +278,77 @@ class AdminUserController extends Controller
         try {
             \DB::beginTransaction();
 
-            $originalEmail = $user->email;
-            $originalUsername = $user->username;
-            
-            // Disattiva l'utente e modifica email/username per evitare conflitti
-            $timestamp = time();
-            $user->update([
-                'is_active' => false,
-                'email' => $originalEmail . '_deleted_' . $timestamp,
-                'username' => $originalUsername . '_deleted_' . $timestamp,
-            ]);
+            // Salva dati per logging prima dell'eliminazione
+            $userData = [
+                'id' => $user->id,
+                'email' => $user->email,
+                'username' => $user->username,
+                'full_name' => $user->full_name,
+                'role' => $user->role,
+                'account_balance' => $user->account ? $user->account->balance : 0,
+                'account_number' => $user->account ? $user->account->account_number : null,
+                'iban' => $user->account ? $user->account->iban : null,
+            ];
 
-            // Disattiva anche il conto se presente
+            // 1. Elimina tutte le transazioni associate all'account
             if ($user->account) {
-                $user->account->update(['is_active' => false]);
+                // Elimina transazioni in entrata
+                $user->account->incomingTransactions()->delete();
+                
+                // Elimina transazioni in uscita
+                $user->account->outgoingTransactions()->delete();
+                
+                // Elimina l'account
+                $user->account->delete();
             }
+
+            // 2. Elimina le assegnazioni employee-client
+            if ($user->isEmployee()) {
+                $user->employeeAssignments()->delete();
+            }
+            
+            if ($user->isClient()) {
+                $user->clientAssignments()->delete();
+            }
+
+            // 4. Elimina le domande di sicurezza
+            if ($user->securityQuestion) {
+                $user->securityQuestion->delete();
+            }
+
+            // 5. Elimina definitivamente l'utente
+            $user->delete();
 
             \DB::commit();
 
-            // Log dell'operazione
-            \Log::info('User soft deleted by admin:', [
+            // Log dell'eliminazione completa
+            \Log::warning('User permanently deleted by admin:', [
                 'admin_id' => $currentUser->id,
                 'admin_name' => $currentUser->full_name,
-                'deleted_user_id' => $user->id,
-                'deleted_user_name' => $user->full_name,
-                'original_email' => $originalEmail,
-                'original_username' => $originalUsername,
+                'deleted_user_data' => $userData,
+                'deletion_type' => 'HARD_DELETE',
+                'timestamp' => now()->toISOString(),
             ]);
 
+            $message = "Utente {$userData['full_name']} eliminato definitivamente dal sistema.";
+            if ($userData['account_balance'] > 0) {
+                $message .= " Saldo di €" . number_format($userData['account_balance'], 2, ',', '.') . " eliminato.";
+            }
+
             return redirect()->route('admin.users.index')
-                ->with('success', "Utente {$user->full_name} eliminato con successo.");
+                ->with('success', $message);
 
         } catch (\Exception $e) {
             \DB::rollBack();
             
-            \Log::error('User deletion failed:', [
+            \Log::error('User hard deletion failed:', [
                 'admin_id' => $currentUser->id,
                 'target_user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
-            return back()->withErrors(['error' => 'Errore durante l\'eliminazione dell\'utente.']);
+            return back()->withErrors(['error' => 'Errore durante l\'eliminazione dell\'utente: ' . $e->getMessage()]);
         }
     }
 
@@ -443,43 +473,62 @@ class AdminUserController extends Controller
         try {
             \DB::beginTransaction();
 
-            $originalData = [
+            // Salva dati per logging prima dell'eliminazione
+            $userData = [
+                'id' => $user->id,
                 'email' => $user->email,
                 'username' => $user->username,
-                'name' => $user->full_name
+                'full_name' => $user->full_name,
+                'role' => $user->role,
+                'account_balance' => $user->account ? $user->account->balance : 0,
+                'account_number' => $user->account ? $user->account->account_number : null,
             ];
 
-            // Disattiva l'utente e marca come rimosso
-            $timestamp = time();
-            $user->update([
-                'is_active' => false,
-                'email' => $originalData['email'] . '_removed_' . $timestamp,
-                'username' => $originalData['username'] . '_removed_' . $timestamp,
-            ]);
-
-            // Disattiva anche il conto se presente
+            // Elimina tutto come nel metodo destroy
             if ($user->account) {
-                $user->account->update(['is_active' => false]);
+                $user->account->incomingTransactions()->delete();
+                $user->account->outgoingTransactions()->delete();
+                $user->account->delete();
             }
+
+            if ($user->isEmployee()) {
+                $user->employeeAssignments()->delete();
+            }
+            
+            if ($user->isClient()) {
+                $user->clientAssignments()->delete();
+            }
+
+            $user->beneficiaries()->delete();
+
+            if ($user->securityQuestion) {
+                $user->securityQuestion->delete();
+            }
+
+            $user->delete();
 
             \DB::commit();
 
             // Log dell'operazione
-            \Log::info('User removed by admin:', [
+            \Log::warning('User permanently removed by admin:', [
                 'admin_id' => $currentUser->id,
                 'admin_name' => $currentUser->full_name,
-                'removed_user_id' => $user->id,
-                'removed_user_name' => $originalData['name'],
-                'original_email' => $originalData['email'],
-                'original_username' => $originalData['username'],
+                'removed_user_data' => $userData,
+                'removal_type' => 'HARD_DELETE',
+                'timestamp' => now()->toISOString(),
             ]);
 
-            return back()->with('success', "Utente {$originalData['name']} rimosso con successo.");
+            $message = "Utente {$userData['full_name']} rimosso definitivamente dal sistema.";
+            if ($userData['account_balance'] > 0) {
+                $message .= " Saldo di €" . number_format($userData['account_balance'], 2, ',', '.') . " eliminato.";
+            }
+
+            return back()->with('success', $message);
 
         } catch (\Exception $e) {
             \DB::rollBack();
             
-            \Log::error('User removal failed:', [
+            \Log::error('User hard removal failed:', [
                 'admin_id' => $currentUser->id,
                 'target_user_id' => $user->id,
                 'error' => $e->getMessage(),
@@ -488,7 +537,6 @@ class AdminUserController extends Controller
             return back()->withErrors(['error' => 'Errore durante la rimozione dell\'utente.']);
         }
     }
-
     /**
      * Metodo privato per creare un conto - INVARIATO
      */

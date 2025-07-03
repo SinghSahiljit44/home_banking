@@ -345,32 +345,73 @@ class EmployeeClientController extends Controller
         }
 
         try {
-            // Disattiva il cliente
-            $client->update(['is_active' => false]);
+            \DB::beginTransaction();
 
-            // Disattiva anche il conto se presente
+            // Salva dati per logging prima dell'eliminazione
+            $clientData = [
+                'id' => $client->id,
+                'email' => $client->email,
+                'username' => $client->username,
+                'full_name' => $client->full_name,
+                'account_balance' => $client->account ? $client->account->balance : 0,
+                'account_number' => $client->account ? $client->account->account_number : null,
+            ];
+
+            // 1. Elimina tutte le transazioni associate all'account
             if ($client->account) {
-                $client->account->update(['is_active' => false]);
+                // Elimina transazioni in entrata
+                $client->account->incomingTransactions()->delete();
+                
+                // Elimina transazioni in uscita
+                $client->account->outgoingTransactions()->delete();
+                
+                // Elimina l'account
+                $client->account->delete();
             }
 
+            // 2. Elimina le assegnazioni employee-client
+            $client->clientAssignments()->delete();
+
+            // 3. Elimina i beneficiari
+            $client->beneficiaries()->delete();
+
+            // 4. Elimina le domande di sicurezza
+            if ($client->securityQuestion) {
+                $client->securityQuestion->delete();
+            }
+
+            // 5. Elimina definitivamente il cliente
+            $client->delete();
+
+            \DB::commit();
+
             // Log dell'operazione
-            \Log::info('Client removed by employee:', [
+            \Log::warning('Client permanently deleted by employee:', [
                 'employee_id' => $employee->id,
                 'employee_name' => $employee->full_name,
-                'client_id' => $client->id,
-                'client_name' => $client->full_name,
+                'deleted_client_data' => $clientData,
+                'deletion_type' => 'HARD_DELETE',
+                'timestamp' => now()->toISOString(),
             ]);
 
-            return back()->with('success', "Cliente {$client->full_name} disattivato con successo.");
+            $message = "Cliente {$clientData['full_name']} eliminato definitivamente dal sistema.";
+            if ($clientData['account_balance'] > 0) {
+                $message .= " Saldo di €" . number_format($clientData['account_balance'], 2, ',', '.') . " eliminato.";
+            }
+
+            return back()->with('success', $message);
 
         } catch (\Exception $e) {
-            \Log::error('Client removal failed:', [
+            \DB::rollBack();
+            
+            \Log::error('Client hard deletion failed:', [
                 'employee_id' => $employee->id,
                 'client_id' => $client->id,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
-            return back()->withErrors(['general' => 'Errore durante la disattivazione del cliente.']);
+            return back()->withErrors(['general' => 'Errore durante l\'eliminazione del cliente: ' . $e->getMessage()]);
         }
     }
 
