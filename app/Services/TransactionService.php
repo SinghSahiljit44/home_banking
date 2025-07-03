@@ -181,31 +181,51 @@ class TransactionService
     }
 
     /**
-     * Crea un deposito sul conto
+     * Crea un deposito sul conto - FIXED: NON MODIFICA IL SALDO DIRETTAMENTE
      */
     public function createDeposit(Account $account, float $amount, string $description = 'Deposito'): Transaction
     {
         DB::beginTransaction();
 
         try {
+            // Genera codice di riferimento
+            $referenceCode = $this->generateUniqueReferenceCode('DEP');
+            
+            // IMPORTANTE: Crea SOLO la transazione, il saldo verrà aggiornato separatamente
             $transaction = Transaction::create([
                 'from_account_id' => null,
                 'to_account_id' => $account->id,
                 'amount' => $amount,
                 'type' => 'deposit',
-                'description' => $description,
-                'reference_code' => 'DEP' . strtoupper(uniqid()),
+                'description' => $this->cleanDescription($description),
+                'reference_code' => $referenceCode,
                 'status' => 'completed'
             ]);
 
+            // AGGIORNA IL SALDO SOLO UNA VOLTA
             $account->increment('balance', $amount);
 
             DB::commit();
+
+            \Log::info('Deposit created successfully', [
+                'account_id' => $account->id,
+                'amount' => $amount,
+                'transaction_id' => $transaction->id,
+                'reference_code' => $referenceCode,
+                'new_balance' => $account->fresh()->balance
+            ]);
 
             return $transaction;
 
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            \Log::error('Deposit creation failed', [
+                'account_id' => $account->id,
+                'amount' => $amount,
+                'error' => $e->getMessage()
+            ]);
+            
             throw $e;
         }
     }
@@ -225,19 +245,29 @@ class TransactionService
         DB::beginTransaction();
 
         try {
+            $referenceCode = $this->generateUniqueReferenceCode('WTH');
+            
             $transaction = Transaction::create([
                 'from_account_id' => $account->id,
                 'to_account_id' => null,
                 'amount' => $amount,
                 'type' => 'withdrawal',
-                'description' => $description,
-                'reference_code' => 'WTH' . strtoupper(uniqid()),
+                'description' => $this->cleanDescription($description),
+                'reference_code' => $referenceCode,
                 'status' => 'completed'
             ]);
 
             $account->decrement('balance', $amount);
 
             DB::commit();
+
+            \Log::info('Withdrawal created successfully', [
+                'account_id' => $account->id,
+                'amount' => $amount,
+                'transaction_id' => $transaction->id,
+                'reference_code' => $referenceCode,
+                'new_balance' => $account->fresh()->balance
+            ]);
 
             return [
                 'success' => true,
@@ -246,6 +276,13 @@ class TransactionService
 
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            \Log::error('Withdrawal creation failed', [
+                'account_id' => $account->id,
+                'amount' => $amount,
+                'error' => $e->getMessage()
+            ]);
+            
             return [
                 'success' => false,
                 'message' => 'Errore durante il prelievo.'

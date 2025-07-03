@@ -9,9 +9,11 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-user me-2"></i>Dettagli Utente: {{ $user->full_name }}</h2>
                 <div>
-                    <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-warning me-2">
-                        <i class="fas fa-edit me-1"></i>Modifica
-                    </a>
+                    @if(!$user->isAdmin() || $user->id === Auth::id())
+                        <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-warning me-2">
+                            <i class="fas fa-edit me-1"></i>Modifica
+                        </a>
+                    @endif
                     <a href="{{ route('admin.users.index') }}" class="btn btn-outline-light">
                         <i class="fas fa-arrow-left me-1"></i>Torna alla Lista
                     </a>
@@ -23,6 +25,28 @@
     @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <!-- Alert per password generata -->
+    @if (session('generated_password'))
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="fas fa-key me-2"></i>
+            <strong>Password generata automaticamente:</strong> 
+            <code class="bg-dark text-warning p-1 rounded">{{ session('generated_password') }}</code>
+            <br>
+            <small class="text-muted">Comunica questa password all'utente. Non sarà più visibile dopo aver chiuso questo messaggio.</small>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            @foreach ($errors->all() as $error)
+                {{ $error }}<br>
+            @endforeach
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
@@ -128,19 +152,43 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-warning">
-                            <i class="fas fa-edit me-2"></i>Modifica Utente
-                        </a>
+                        @if(!$user->isAdmin() || $user->id === Auth::id())
+                            <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-warning">
+                                <i class="fas fa-edit me-2"></i>Modifica Utente
+                            </a>
+                        @endif
                         
-                        @if($user->account)
+                        @if($user->account && $user->isClient())
                             <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#depositModal">
                                 <i class="fas fa-plus-circle me-2"></i>Deposita Fondi
                             </button>
+                            
+                            @if($user->account->is_active)
+                                <a href="{{ route('admin.transactions.create-transfer-form', $user) }}" class="btn btn-primary">
+                                    <i class="fas fa-money-bill-transfer me-2"></i>Crea Bonifico
+                                </a>
+                            @endif
                         @endif
                         
-                        @if(!$user->isAdmin())
+                        @if(!$user->isAdmin() && $user->id !== Auth::id())
+                            @if($user->is_active)
+                                <form method="POST" action="{{ route('admin.users.toggle-status', $user) }}" class="d-inline">
+                                    @csrf
+                                    <button type="submit" class="btn btn-warning w-100" onclick="return confirm('Confermi la disattivazione di questo utente?')">
+                                        <i class="fas fa-user-slash me-2"></i>Disattiva Utente
+                                    </button>
+                                </form>
+                            @else
+                                <form method="POST" action="{{ route('admin.users.toggle-status', $user) }}" class="d-inline">
+                                    @csrf
+                                    <button type="submit" class="btn btn-success w-100" onclick="return confirm('Confermi la riattivazione di questo utente?')">
+                                        <i class="fas fa-user-check me-2"></i>Riattiva Utente
+                                    </button>
+                                </form>
+                            @endif
+                            
                             <button class="btn btn-danger" onclick="confirmDelete({{ $user->id }})">
-                                <i class="fas fa-user-slash me-2"></i>Disattiva Utente
+                                <i class="fas fa-trash me-2"></i>Elimina Utente
                             </button>
                         @endif
                     </div>
@@ -164,6 +212,23 @@
                         @if($transactionStats['last_transaction'])
                             <p><strong>Ultima Transazione:</strong> {{ $transactionStats['last_transaction']->created_at->format('d/m/Y H:i') }}</p>
                         @endif
+                    </div>
+                </div>
+            @endif
+
+            <!-- Protezioni Admin -->
+            @if($user->isAdmin())
+                <div class="card bg-transparent border-info mt-3">
+                    <div class="card-header bg-info text-dark">
+                        <h6><i class="fas fa-shield-alt me-2"></i>Account Amministratore</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2"><small>Gli account amministratore hanno protezioni speciali:</small></p>
+                        <ul class="small mb-0">
+                            <li>Non possono essere eliminati</li>
+                            <li>Solo loro stessi possono modificare i propri dati</li>
+                            <li>Non possono essere disattivati da altri admin</li>
+                        </ul>
                     </div>
                 </div>
             @endif
@@ -221,6 +286,11 @@
                                 </tbody>
                             </table>
                         </div>
+                        <div class="text-center mt-2">
+                            <a href="{{ route('admin.transactions.index', ['client_id' => $user->id]) }}" class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-list me-1"></i>Vedi Tutte le Transazioni
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -229,29 +299,38 @@
 </div>
 
 <!-- Modal Deposito -->
-@if($user->account)
+@if($user->account && $user->isClient())
 <div class="modal fade" id="depositModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content bg-dark">
             <div class="modal-header">
-                <h5 class="modal-title">Deposita Fondi</h5>
+                <h5 class="modal-title">Deposita Fondi per {{ $user->full_name }}</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ route('admin.users.deposit', $user) }}">
                 @csrf
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="amount" class="form-label">Importo (€)</label>
-                        <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0.01" required>
+                        <label for="amount" class="form-label">Importo (€) *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">€</span>
+                            <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0.01" max="100000" required>
+                        </div>
                     </div>
                     <div class="mb-3">
-                        <label for="description" class="form-label">Descrizione</label>
-                        <input type="text" class="form-control" id="description" name="description" value="Deposito amministrativo" required>
+                        <label for="description" class="form-label">Descrizione *</label>
+                        <input type="text" class="form-control" id="description" name="description" value="Deposito amministrativo" required maxlength="255">
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <small>Il deposito verrà registrato immediatamente sul conto dell'utente.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-                    <button type="submit" class="btn btn-success">Deposita</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-plus-circle me-1"></i>Deposita
+                    </button>
                 </div>
             </form>
         </div>
@@ -260,28 +339,43 @@
 @endif
 
 <!-- Modal Conferma Eliminazione -->
+@if(!$user->isAdmin())
 <div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content bg-dark">
             <div class="modal-header">
-                <h5 class="modal-title">Conferma Disattivazione</h5>
+                <h5 class="modal-title">Conferma Eliminazione</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p>Sei sicuro di voler disattivare questo utente?</p>
-                <p class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>L'utente non potrà più accedere al sistema.</p>
+                <p>Sei sicuro di voler eliminare definitivamente questo utente?</p>
+                <p><strong>Nome:</strong> {{ $user->full_name }}</p>
+                <p><strong>Email:</strong> {{ $user->email }}</p>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Attenzione:</strong> Questa azione:
+                    <ul class="mb-0 mt-2">
+                        <li>Disattiverà permanentemente l'utente</li>
+                        <li>Bloccherà il suo conto (se presente)</li>
+                        <li>Modificherà email e username per evitare conflitti</li>
+                        <li><strong>NON può essere annullata</strong></li>
+                    </ul>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
                 <form id="deleteForm" method="POST" class="d-inline">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-danger">Disattiva</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>Elimina Definitivamente
+                    </button>
                 </form>
             </div>
         </div>
     </div>
 </div>
+@endif
 
 <script>
 function confirmDelete(userId) {
@@ -291,5 +385,27 @@ function confirmDelete(userId) {
     const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
     modal.show();
 }
+
+// Auto-dismiss alerts after 10 seconds (password alerts stay longer)
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        const alerts = document.querySelectorAll('.alert:not(.alert-warning)');
+        alerts.forEach(function(alert) {
+            if (bootstrap.Alert.getInstance(alert)) {
+                bootstrap.Alert.getInstance(alert).close();
+            }
+        });
+    }, 5000);
+    
+    // Password alerts dismiss after 15 seconds
+    setTimeout(function() {
+        const passwordAlerts = document.querySelectorAll('.alert-warning');
+        passwordAlerts.forEach(function(alert) {
+            if (bootstrap.Alert.getInstance(alert)) {
+                bootstrap.Alert.getInstance(alert).close();
+            }
+        });
+    }, 15000);
+});
 </script>
 @endsection

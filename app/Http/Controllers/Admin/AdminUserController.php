@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Account;
 use App\Services\TransactionService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -25,7 +26,6 @@ class AdminUserController extends Controller
      */
     public function index(Request $request)
     {
-
         $search = $request->input('search');
         $role = $request->input('role');
         $status = $request->input('status');
@@ -65,29 +65,39 @@ class AdminUserController extends Controller
     }
 
     /**
-     * Registra un nuovo cliente
+     * Registra un nuovo cliente - FIXED
      */
     public function store(Request $request)
     {
-
+        // VALIDAZIONE MIGLIORATA
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:50',
             'last_name' => 'required|string|max:50',
-            'username' => 'required|string|max:50|unique:users',
-            'email' => 'required|string|email|max:100|unique:users',
+            'username' => 'required|string|max:50|unique:users,username',
+            'email' => 'required|string|email|max:100|unique:users,email',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
-            'password' => 'required|string|min:8',
+            'password' => 'nullable|string|min:8', // CAMBIATO: password opzionale
             'role' => 'required|in:client,employee',
-            'create_account' => 'boolean',
-            'initial_balance' => 'nullable|numeric|min:0',
+            'create_account' => 'nullable|boolean',
+            'initial_balance' => 'nullable|numeric|min:0|max:1000000',
         ]);
 
         if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput()
+                ->with('error', 'Errore nella validazione dei dati.');
         }
 
         try {
+            \DB::beginTransaction();
+
+            // GENERA PASSWORD AUTOMATICAMENTE SE NON FORNITA
+            $password = $request->filled('password') 
+                ? $request->password 
+                : $this->generateSecurePassword(12);
+
             // Crea l'utente
             $user = User::create([
                 'first_name' => $request->first_name,
@@ -96,33 +106,58 @@ class AdminUserController extends Controller
                 'email' => $request->email,
                 'phone' => $request->phone,
                 'address' => $request->address,
-                'password' => Hash::make($request->password),
+                'password' => Hash::make($password),
                 'role' => $request->role,
                 'is_active' => true,
                 'email_verified_at' => now(),
             ]);
 
-            // Assegna il ruolo Spatie
-            $user->assignRole($request->role);
-
+            $account = null;
+            
             // Crea il conto se richiesto (solo per clienti)
-            if ($request->create_account && $request->role === 'client') {
-                $account = $this->createAccountForUser($user, $request->initial_balance ?? 0);
+            if ($request->boolean('create_account') && $request->role === 'client') {
+                $initialBalance = floatval($request->initial_balance ?? 0);
                 
-                if ($request->initial_balance > 0) {
+                // PRIMA crea il conto con saldo 0
+                $account = $this->createAccountForUser($user, 0);
+                
+                // POI se c'è un saldo iniziale, crea UNA SOLA transazione di deposito
+                if ($initialBalance > 0) {
                     $this->transactionService->createDeposit(
                         $account, 
-                        $request->initial_balance, 
+                        $initialBalance, 
                         'Deposito iniziale - Apertura conto'
                     );
                 }
             }
 
+            \DB::commit();
+
+            // Messaggio di successo con password generata
+            $successMessage = "Utente {$user->full_name} creato con successo.";
+            if (!$request->filled('password')) {
+                $successMessage .= " Password generata: {$password}";
+            }
+            if ($account) {
+                $successMessage .= " Conto creato: {$account->account_number}";
+            }
+
             return redirect()->route('admin.users.show', $user)
-                ->with('success', 'Utente creato con successo.');
+                ->with('success', $successMessage)
+                ->with('generated_password', !$request->filled('password') ? $password : null);
 
         } catch (\Exception $e) {
-            return back()->withErrors(['general' => 'Errore durante la creazione dell\'utente.'])->withInput();
+            \DB::rollBack();
+            
+            \Log::error('Admin user creation failed:', [
+                'admin_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return redirect()->back()
+                ->withErrors(['general' => 'Errore durante la creazione dell\'utente: ' . $e->getMessage()])
+                ->withInput();
         }
     }
 
@@ -152,22 +187,36 @@ class AdminUserController extends Controller
      */
     public function edit(User $user)
     {
+        // CONTROLLO: Admin non possono modificare altri admin
+        $currentUser = Auth::user();
+        if ($user->isAdmin() && $currentUser->id !== $user->id) {
+            return redirect()->route('admin.users.index')
+                ->withErrors(['error' => 'Non puoi modificare i dati di altri amministratori.']);
+        }
+
         return view('admin.users.edit', compact('user'));
     }
 
     /**
-     * Aggiorna un utente
+     * Aggiorna un utente - FIXED
      */
     public function update(Request $request, User $user)
     {
+        // CONTROLLO: Admin non possono modificare altri admin
+        $currentUser = Auth::user();
+        if ($user->isAdmin() && $currentUser->id !== $user->id) {
+            return redirect()->route('admin.users.index')
+                ->withErrors(['error' => 'Non puoi modificare i dati di altri amministratori.']);
+        }
+
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:50',
             'last_name' => 'required|string|max:50',
             'email' => 'required|string|email|max:100|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
-            'is_active' => 'boolean',
-            'reset_password' => 'boolean',
+            'is_active' => 'nullable|boolean',
+            'reset_password' => 'nullable|boolean',
             'new_password' => 'nullable|string|min:8',
         ]);
 
@@ -175,41 +224,69 @@ class AdminUserController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        $updateData = [
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'is_active' => $request->boolean('is_active'),
-        ];
+        try {
+            $updateData = [
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'address' => $request->address,
+            ];
 
-        // Reset password se richiesto
-        if ($request->reset_password && $request->new_password) {
-            $updateData['password'] = Hash::make($request->new_password);
+            // Solo admin possono cambiare lo stato di attivazione di altri utenti
+            if ($currentUser->isAdmin() && $currentUser->id !== $user->id) {
+                $updateData['is_active'] = $request->boolean('is_active');
+            }
+
+            // Reset password se richiesto
+            if ($request->boolean('reset_password') && $request->filled('new_password')) {
+                $updateData['password'] = Hash::make($request->new_password);
+            }
+
+            $user->update($updateData);
+
+            return redirect()->route('admin.users.show', $user)
+                ->with('success', 'Utente aggiornato con successo.');
+
+        } catch (\Exception $e) {
+            \Log::error('User update failed:', [
+                'admin_id' => Auth::id(),
+                'target_user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return back()->withErrors(['general' => 'Errore durante l\'aggiornamento dell\'utente.'])->withInput();
         }
-
-        $user->update($updateData);
-
-        return redirect()->route('admin.users.show', $user)
-            ->with('success', 'Utente aggiornato con successo.');
     }
 
     /**
-     * Elimina un utente (soft delete)
+     * Elimina un utente (soft delete) - FIXED
      */
     public function destroy(User $user)
     {
+        $currentUser = Auth::user();
+
+        // CONTROLLI MIGLIORATI
         if ($user->isAdmin()) {
-            return back()->withErrors(['general' => 'Impossibile eliminare un amministratore.']);
+            return back()->withErrors(['error' => 'Impossibile eliminare un amministratore.']);
+        }
+
+        if ($user->id === $currentUser->id) {
+            return back()->withErrors(['error' => 'Non puoi eliminare te stesso.']);
         }
 
         try {
-            // Disattiva l'utente invece di eliminarlo definitivamente
+            \DB::beginTransaction();
+
+            $originalEmail = $user->email;
+            $originalUsername = $user->username;
+            
+            // Disattiva l'utente e modifica email/username per evitare conflitti
+            $timestamp = time();
             $user->update([
                 'is_active' => false,
-                'email' => $user->email . '_deleted_' . time(),
-                'username' => $user->username . '_deleted_' . time(),
+                'email' => $originalEmail . '_deleted_' . $timestamp,
+                'username' => $originalUsername . '_deleted_' . $timestamp,
             ]);
 
             // Disattiva anche il conto se presente
@@ -217,11 +294,31 @@ class AdminUserController extends Controller
                 $user->account->update(['is_active' => false]);
             }
 
+            \DB::commit();
+
+            // Log dell'operazione
+            \Log::info('User soft deleted by admin:', [
+                'admin_id' => $currentUser->id,
+                'admin_name' => $currentUser->full_name,
+                'deleted_user_id' => $user->id,
+                'deleted_user_name' => $user->full_name,
+                'original_email' => $originalEmail,
+                'original_username' => $originalUsername,
+            ]);
+
             return redirect()->route('admin.users.index')
-                ->with('success', 'Utente disattivato con successo.');
+                ->with('success', "Utente {$user->full_name} eliminato con successo.");
 
         } catch (\Exception $e) {
-            return back()->withErrors(['general' => 'Errore durante l\'eliminazione dell\'utente.']);
+            \DB::rollBack();
+            
+            \Log::error('User deletion failed:', [
+                'admin_id' => $currentUser->id,
+                'target_user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return back()->withErrors(['error' => 'Errore durante l\'eliminazione dell\'utente.']);
         }
     }
 
@@ -296,7 +393,104 @@ class AdminUserController extends Controller
     }
 
     /**
-     * Metodo privato per creare un conto
+     * Blocca/Sblocca un utente (Admin può gestire tutti gli utenti) - FIXED
+     */
+    public function toggleUserStatus(User $user)
+    {
+        $currentUser = Auth::user();
+
+        if ($user->isAdmin() && $user->id !== $currentUser->id) {
+            return back()->withErrors(['error' => 'Non puoi modificare lo stato di altri amministratori.']);
+        }
+
+        if ($user->id === $currentUser->id) {
+            return back()->withErrors(['error' => 'Non puoi modificare il tuo stesso stato.']);
+        }
+
+        $oldStatus = $user->is_active;
+        $user->update(['is_active' => !$user->is_active]);
+
+        $status = $user->is_active ? 'attivato' : 'disattivato';
+        
+        // Log dell'operazione
+        \Log::info('User status changed by admin:', [
+            'admin_id' => $currentUser->id,
+            'admin_name' => $currentUser->full_name,
+            'target_user_id' => $user->id,
+            'target_user_name' => $user->full_name,
+            'old_status' => $oldStatus,
+            'new_status' => $user->is_active,
+        ]);
+
+        return back()->with('success', "Utente {$status} con successo.");
+    }
+
+    /**
+     * Rimuove un utente (Admin può rimuovere tutti tranne admin) - FIXED
+     */
+    public function removeUser(User $user)
+    {
+        $currentUser = Auth::user();
+
+        if ($user->isAdmin()) {
+            return back()->withErrors(['error' => 'Non puoi rimuovere un amministratore.']);
+        }
+
+        if ($user->id === $currentUser->id) {
+            return back()->withErrors(['error' => 'Non puoi rimuovere te stesso.']);
+        }
+
+        try {
+            \DB::beginTransaction();
+
+            $originalData = [
+                'email' => $user->email,
+                'username' => $user->username,
+                'name' => $user->full_name
+            ];
+
+            // Disattiva l'utente e marca come rimosso
+            $timestamp = time();
+            $user->update([
+                'is_active' => false,
+                'email' => $originalData['email'] . '_removed_' . $timestamp,
+                'username' => $originalData['username'] . '_removed_' . $timestamp,
+            ]);
+
+            // Disattiva anche il conto se presente
+            if ($user->account) {
+                $user->account->update(['is_active' => false]);
+            }
+
+            \DB::commit();
+
+            // Log dell'operazione
+            \Log::info('User removed by admin:', [
+                'admin_id' => $currentUser->id,
+                'admin_name' => $currentUser->full_name,
+                'removed_user_id' => $user->id,
+                'removed_user_name' => $originalData['name'],
+                'original_email' => $originalData['email'],
+                'original_username' => $originalData['username'],
+            ]);
+
+            return back()->with('success', "Utente {$originalData['name']} rimosso con successo.");
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            
+            \Log::error('User removal failed:', [
+                'admin_id' => $currentUser->id,
+                'target_user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['error' => 'Errore durante la rimozione dell\'utente.']);
+        }
+    }
+
+    /**
+     * Metodo privato per creare un conto - INVARIATO
      */
     private function createAccountForUser(User $user, float $initialBalance = 0): Account
     {
@@ -324,11 +518,10 @@ class AdminUserController extends Controller
     }
 
     /**
-     * Calcola i digit di controllo IBAN
+     * Calcola i digit di controllo IBAN - INVARIATO
      */
     private function calculateIbanCheckDigits(string $countryCode, string $bban): string
     {
-        // Algoritmo semplificato per generare check digits IBAN
         $rearranged = $bban . $countryCode . '00';
         $numericString = '';
         
@@ -345,81 +538,30 @@ class AdminUserController extends Controller
         return str_pad($checksum, 2, '0', STR_PAD_LEFT);
     }
 
-        /**
-     * NUOVO: Blocca/Sblocca un utente (Admin può gestire tutti gli utenti)
+    /**
+     * NUOVO: Genera una password sicura
      */
-    public function toggleUserStatus(User $user)
+    private function generateSecurePassword(int $length = 12): string
     {
-        if ($user->isAdmin() && $user->id !== auth()->id()) {
-            return back()->withErrors(['error' => 'Non puoi modificare lo stato di altri amministratori.']);
+        $lowercase = 'abcdefghijklmnopqrstuvwxyz';
+        $uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $numbers = '0123456789';
+        $special = '!@#$%&*';
+
+        // Assicurati che ci sia almeno un carattere per tipo
+        $password = '';
+        $password .= $lowercase[random_int(0, strlen($lowercase) - 1)];
+        $password .= $uppercase[random_int(0, strlen($uppercase) - 1)];
+        $password .= $numbers[random_int(0, strlen($numbers) - 1)];
+        $password .= $special[random_int(0, strlen($special) - 1)];
+
+        // Riempi il resto
+        $allChars = $lowercase . $uppercase . $numbers . $special;
+        for ($i = 4; $i < $length; $i++) {
+            $password .= $allChars[random_int(0, strlen($allChars) - 1)];
         }
 
-        if ($user->id === auth()->id()) {
-            return back()->withErrors(['error' => 'Non puoi modificare il tuo stesso stato.']);
-        }
-
-        $oldStatus = $user->is_active;
-        $user->update(['is_active' => !$user->is_active]);
-
-        $status = $user->is_active ? 'attivato' : 'disattivato';
-        
-        // Log dell'operazione
-        \Log::info('User status changed by admin:', [
-            'admin_id' => auth()->id(),
-            'admin_name' => auth()->user()->full_name,
-            'target_user_id' => $user->id,
-            'target_user_name' => $user->full_name,
-            'old_status' => $oldStatus,
-            'new_status' => $user->is_active,
-        ]);
-
-        return back()->with('success', "Utente {$status} con successo.");
-    }
-
-        /**
-     * NUOVO: Rimuove un utente (Admin può rimuovere tutti tranne admin)
-     */
-    public function removeUser(User $user)
-    {
-        if ($user->isAdmin()) {
-            return back()->withErrors(['error' => 'Non puoi rimuovere un amministratore.']);
-        }
-
-        if ($user->id === auth()->id()) {
-            return back()->withErrors(['error' => 'Non puoi rimuovere te stesso.']);
-        }
-
-        try {
-            // Disattiva l'utente e marca come rimosso
-            $user->update([
-                'is_active' => false,
-                'email' => $user->email . '_removed_' . time(),
-                'username' => $user->username . '_removed_' . time(),
-            ]);
-
-            // Disattiva anche il conto se presente
-            if ($user->account) {
-                $user->account->update(['is_active' => false]);
-            }
-
-            // Log dell'operazione
-            \Log::info('User removed by admin:', [
-                'admin_id' => auth()->id(),
-                'admin_name' => auth()->user()->full_name,
-                'removed_user_id' => $user->id,
-                'removed_user_name' => $user->full_name,
-            ]);
-
-            return back()->with('success', "Utente {$user->full_name} rimosso con successo.");
-
-        } catch (\Exception $e) {
-            \Log::error('User removal failed:', [
-                'admin_id' => auth()->id(),
-                'target_user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return back()->withErrors(['error' => 'Errore durante la rimozione dell\'utente.']);
-        }
+        // Mescola i caratteri
+        return str_shuffle($password);
     }
 }

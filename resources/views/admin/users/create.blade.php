@@ -18,11 +18,18 @@
                 <div class="card-body">
                     @if ($errors->any())
                         <div class="alert alert-danger">
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i>Errori di validazione:</h6>
                             <ul class="mb-0">
                                 @foreach ($errors->all() as $error)
                                     <li>{{ $error }}</li>
                                 @endforeach
                             </ul>
+                        </div>
+                    @endif
+
+                    @if (session('error'))
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>{{ session('error') }}
                         </div>
                     @endif
 
@@ -140,33 +147,6 @@
                             </div>
                         </div>
 
-                        <!-- Credenziali -->
-                        <div class="card bg-dark border-secondary mb-4">
-                            <div class="card-header">
-                                <h6><i class="fas fa-key me-2"></i>Credenziali di Accesso</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label for="password" class="form-label">Password *</label>
-                                    <div class="input-group">
-                                        <input type="password" 
-                                               class="form-control @error('password') is-invalid @enderror" 
-                                               id="password" 
-                                               name="password" 
-                                               required 
-                                               minlength="8">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password')">
-                                            <i class="fas fa-eye" id="password_icon"></i>
-                                        </button>
-                                    </div>
-                                    @error('password')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                    <div class="form-text">Minimo 8 caratteri</div>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Opzioni Conto (solo per clienti) -->
                         <div class="card bg-dark border-secondary mb-4" id="accountOptions" style="display: none;">
                             <div class="card-header">
@@ -198,12 +178,13 @@
                                                name="initial_balance" 
                                                value="{{ old('initial_balance', '0.00') }}" 
                                                step="0.01" 
-                                               min="0">
+                                               min="0"
+                                               max="1000000">
                                     </div>
                                     @error('initial_balance')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
-                                    <div class="form-text">Importo da depositare nel nuovo conto</div>
+                                    <div class="form-text">Importo da depositare nel nuovo conto (massimo €1.000.000)</div>
                                 </div>
                             </div>
                         </div>
@@ -212,7 +193,7 @@
                         <div class="alert alert-warning">
                             <i class="fas fa-exclamation-triangle me-2"></i>
                             <strong>Attenzione:</strong> Verifica attentamente tutti i dati prima di procedere. 
-                            L'utente riceverà le credenziali per accedere al sistema.
+                            Se non imposti una password personalizzata, ne verrà generata una automaticamente che dovrai comunicare all'utente.
                         </div>
 
                         <div class="d-flex justify-content-between">
@@ -251,6 +232,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const accountOptions = document.getElementById('accountOptions');
     const createAccountCheck = document.getElementById('create_account');
     const initialBalanceGroup = document.getElementById('initialBalanceGroup');
+    const customPasswordCheck = document.getElementById('custom_password');
+    const passwordGroup = document.getElementById('passwordGroup');
+    const passwordInput = document.getElementById('password');
     
     // Mostra opzioni conto solo per clienti
     roleSelect.addEventListener('change', function() {
@@ -278,11 +262,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const usernameInput = document.getElementById('username');
     
     function generateUsername() {
-        const firstName = firstNameInput.value.toLowerCase().replace(/[^a-z]/g, '');
-        const lastName = lastNameInput.value.toLowerCase().replace(/[^a-z]/g, '');
-        
-        if (firstName && lastName) {
-            usernameInput.value = firstName + '.' + lastName;
+        if (!usernameInput.value || usernameInput.value === usernameInput.getAttribute('data-generated')) {
+            const firstName = firstNameInput.value.toLowerCase().replace(/[^a-z]/g, '');
+            const lastName = lastNameInput.value.toLowerCase().replace(/[^a-z]/g, '');
+            
+            if (firstName && lastName) {
+                const generatedUsername = firstName + '.' + lastName;
+                usernameInput.value = generatedUsername;
+                usernameInput.setAttribute('data-generated', generatedUsername);
+            }
         }
     }
     
@@ -297,6 +285,28 @@ document.addEventListener('DOMContentLoaded', function() {
     if (createAccountCheck.checked) {
         initialBalanceGroup.style.display = 'block';
     }
+    
+    if (customPasswordCheck.checked) {
+        passwordGroup.style.display = 'block';
+        passwordInput.required = true;
+    }
+    
+    // Validazione form prima dell'invio
+    document.getElementById('createUserForm').addEventListener('submit', function(e) {
+        const submitBtn = document.getElementById('submitBtn');
+        
+        // Disabilita il pulsante per evitare doppi invii
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creazione in corso...';
+        
+        // Se si verifica un errore di validazione, riabilita il pulsante
+        setTimeout(function() {
+            if (document.querySelector('.alert-danger')) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Crea Utente';
+            }
+        }, 1000);
+    });
 });
 </script>
 @endsection
