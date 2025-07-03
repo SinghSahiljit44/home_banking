@@ -160,7 +160,7 @@
                                         @if(!$user->isAdmin())
                                             <button type="button" 
                                                     class="btn btn-sm btn-outline-danger" 
-                                                    onclick="confirmDelete({{ $user->id }})"
+                                                    onclick="confirmDelete({{ $user->id }}, '{{ $user->full_name }}', '{{ $user->email }}', '{{ $user->username }}', '{{ ucfirst($user->role) }}', {{ $user->account ? $user->account->account_number : 'null' }}, {{ $user->account ? "'".$user->account->iban."'" : 'null' }}, {{ $user->account ? $user->account->balance : 0 }})"
                                                     title="Elimina">
                                                 <i class="fas fa-trash"></i>
                                             </button>
@@ -206,7 +206,7 @@
                     <div class="d-flex align-items-center gap-2">
                         @if($users->hasPages())
                             <small class="text-muted me-2">Pagina:</small>
-                            <nav aria-label="Paginazione movimenti">
+                            <nav aria-label="Paginazione utenti">
                                 {{ $users->links('pagination::bootstrap-4') }}
                             </nav>
                         @endif
@@ -214,11 +214,11 @@
                 </div>
             @else
                 <div class="text-center py-5">
-                    <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
                     <h5 class="text-muted">Nessun utente trovato</h5>
                     <p class="text-muted">Non ci sono utenti che corrispondono ai filtri selezionati.</p>
-                    @if(request()->hasAny(['date_from', 'date_to', 'type', 'min_amount', 'max_amount']))
-                        <a href="{{ route('client.account.show') }}" class="btn btn-primary">
+                    @if(request()->hasAny(['search', 'role', 'status']))
+                        <a href="{{ route('admin.users.index') }}" class="btn btn-primary">
                             <i class="fas fa-eye me-1"></i>Visualizza tutti gli utenti
                         </a>
                     @endif
@@ -248,41 +248,32 @@
                 
                 <p><strong>Utente da eliminare:</strong></p>
                 <ul>
-                    <li><strong>Nome:</strong> {{ $user->full_name }}</li>
-                    <li><strong>Email:</strong> {{ $user->email }}</li>
-                    <li><strong>Username:</strong> {{ $user->username }}</li>
-                    <li><strong>Ruolo:</strong> {{ ucfirst($user->role) }}</li>
+                    <li><strong>Nome:</strong> <span id="modal-user-name"></span></li>
+                    <li><strong>Email:</strong> <span id="modal-user-email"></span></li>
+                    <li><strong>Username:</strong> <span id="modal-user-username"></span></li>
+                    <li><strong>Ruolo:</strong> <span id="modal-user-role"></span></li>
                 </ul>
                 
-                @if($user->account)
+                <div id="modal-account-info" style="display: none;">
                     <div class="alert alert-warning">
                         <i class="fas fa-university me-2"></i>
                         <strong>Conto Corrente:</strong>
                         <br>
-                        <small>Numero: {{ $user->account->account_number }}</small>
+                        <small>Numero: <span id="modal-account-number"></span></small>
                         <br>
-                        <small>IBAN: {{ $user->account->iban }}</small>
-                        @if($user->account->balance > 0)
-                            <br>
-                            <strong class="text-danger">Saldo: €{{ number_format($user->account->balance, 2, ',', '.') }}</strong>
-                        @else
-                            <br>
-                            <small>Saldo: €0,00</small>
-                        @endif
+                        <small>IBAN: <span id="modal-account-iban"></span></small>
+                        <br>
+                        <strong class="text-danger">Saldo: €<span id="modal-account-balance"></span></strong>
                     </div>
-                @endif
+                </div>
                 
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     <strong>VERRÀ ELIMINATO DEFINITIVAMENTE:</strong>
                     <ul class="mb-0 mt-2">
                         <li>L'utente e tutti i suoi dati personali</li>
-                        @if($user->account)
-                            <li>Il conto corrente e tutte le transazioni</li>
-                            @if($user->account->balance > 0)
-                                <li class="text-danger"><strong>Il saldo di €{{ number_format($user->account->balance, 2, ',', '.') }}</strong></li>
-                            @endif
-                        @endif
+                        <li id="modal-account-deletion" style="display: none;">Il conto corrente e tutte le transazioni</li>
+                        <li id="modal-balance-deletion" style="display: none;" class="text-danger"><strong>Il saldo di €<span id="modal-balance-amount"></span></strong></li>
                         <li>Tutte le assegnazioni employee-client</li>
                         <li>I beneficiari salvati</li>
                         <li>Le domande di sicurezza</li>
@@ -325,30 +316,56 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function confirmDelete(userId) {
+function confirmDelete(userId, userName, userEmail, userUsername, userRole, accountNumber, accountIban, accountBalance) {
+    console.log('confirmDelete called with:', {userId, userName, userEmail, userUsername, userRole, accountNumber, accountIban, accountBalance});
+    
     const form = document.getElementById('deleteForm');
     const checkbox = document.getElementById('confirmHardDelete');
     const deleteBtn = document.getElementById('confirmDeleteBtn');
     
+    // Imposta l'action del form
     form.action = `/admin/users/${userId}`;
     
     // Reset checkbox e button
     if (checkbox) checkbox.checked = false;
     if (deleteBtn) deleteBtn.disabled = true;
     
+    // Popola i dati utente nel modal
+    document.getElementById('modal-user-name').textContent = userName;
+    document.getElementById('modal-user-email').textContent = userEmail;
+    document.getElementById('modal-user-username').textContent = userUsername;
+    document.getElementById('modal-user-role').textContent = userRole;
+    
+    // Gestisci le informazioni del conto
+    const accountInfo = document.getElementById('modal-account-info');
+    const accountDeletion = document.getElementById('modal-account-deletion');
+    const balanceDeletion = document.getElementById('modal-balance-deletion');
+    
+    if (accountNumber && accountNumber !== 'null') {
+        // L'utente ha un conto
+        accountInfo.style.display = 'block';
+        accountDeletion.style.display = 'list-item';
+        
+        document.getElementById('modal-account-number').textContent = accountNumber;
+        document.getElementById('modal-account-iban').textContent = accountIban;
+        document.getElementById('modal-account-balance').textContent = parseFloat(accountBalance).toFixed(2).replace('.', ',');
+        
+        if (accountBalance > 0) {
+            balanceDeletion.style.display = 'list-item';
+            document.getElementById('modal-balance-amount').textContent = parseFloat(accountBalance).toFixed(2).replace('.', ',');
+        } else {
+            balanceDeletion.style.display = 'none';
+        }
+    } else {
+        // L'utente non ha un conto
+        accountInfo.style.display = 'none';
+        accountDeletion.style.display = 'none';
+        balanceDeletion.style.display = 'none';
+    }
+    
+    // Mostra il modal
     const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
     modal.show();
-}
-
-// Stile per avatar
-.avatar-sm {
-    width: 32px;
-    height: 32px;
-}
-
-.btn-xs {
-    padding: 0.125rem 0.25rem;
-    font-size: 0.75rem;
 }
 </script>
 

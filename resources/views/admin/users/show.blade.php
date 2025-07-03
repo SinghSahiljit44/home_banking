@@ -187,7 +187,7 @@
                                 </form>
                             @endif
                             
-                            <button class="btn btn-danger" onclick="confirmDelete({{ $user->id }})">
+                            <button class="btn btn-danger" onclick="confirmDelete({{ $user->id }}, '{{ $user->full_name }}', '{{ $user->email }}', '{{ $user->username }}', '{{ ucfirst($user->role) }}', {{ $user->account ? $user->account->account_number : 'null' }}, {{ $user->account ? "'".$user->account->iban."'" : 'null' }}, {{ $user->account ? $user->account->balance : 0 }})">
                                 <i class="fas fa-trash me-2"></i>Elimina Utente
                             </button>
                         @endif
@@ -338,37 +338,92 @@
 </div>
 @endif
 
-<!-- Modal Conferma Eliminazione -->
+<!-- Modal Conferma Eliminazione AGGIORNATO -->
 @if(!$user->isAdmin())
 <div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content bg-dark">
             <div class="modal-header">
-                <h5 class="modal-title">Conferma Eliminazione</h5>
+                <h5 class="modal-title text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Eliminazione Permanente
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p>Sei sicuro di voler eliminare definitivamente questo utente?</p>
-                <p><strong>Nome:</strong> {{ $user->full_name }}</p>
-                <p><strong>Email:</strong> {{ $user->email }}</p>
+                <div class="alert alert-danger">
+                    <i class="fas fa-skull-crossbones me-2"></i>
+                    <strong>ATTENZIONE: ELIMINAZIONE PERMANENTE</strong>
+                    <br>
+                    <small>Questa operazione eliminerà completamente tutti i dati dal database.</small>
+                </div>
+                
+                <p><strong>Utente da eliminare:</strong></p>
+                <ul>
+                    <li><strong>Nome:</strong> <span id="modal-user-name">{{ $user->full_name }}</span></li>
+                    <li><strong>Email:</strong> <span id="modal-user-email">{{ $user->email }}</span></li>
+                    <li><strong>Username:</strong> <span id="modal-user-username">{{ $user->username }}</span></li>
+                    <li><strong>Ruolo:</strong> <span id="modal-user-role">{{ ucfirst($user->role) }}</span></li>
+                </ul>
+                
+                @if($user->account)
+                    <div class="alert alert-warning" id="modal-account-info">
+                        <i class="fas fa-university me-2"></i>
+                        <strong>Conto Corrente:</strong>
+                        <br>
+                        <small>Numero: <span id="modal-account-number">{{ $user->account->account_number }}</span></small>
+                        <br>
+                        <small>IBAN: <span id="modal-account-iban">{{ $user->account->iban }}</span></small>
+                        @if($user->account->balance > 0)
+                            <br>
+                            <strong class="text-danger">Saldo: €<span id="modal-account-balance">{{ number_format($user->account->balance, 2, ',', '.') }}</span></strong>
+                        @else
+                            <br>
+                            <small>Saldo: €<span id="modal-account-balance">0,00</span></small>
+                        @endif
+                    </div>
+                @else
+                    <div class="alert alert-warning" id="modal-account-info" style="display: none;">
+                        <i class="fas fa-university me-2"></i>
+                        <strong>Conto Corrente:</strong>
+                        <br>
+                        <small>Numero: <span id="modal-account-number"></span></small>
+                        <br>
+                        <small>IBAN: <span id="modal-account-iban"></span></small>
+                        <br>
+                        <strong class="text-danger">Saldo: €<span id="modal-account-balance"></span></strong>
+                    </div>
+                @endif
+                
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Attenzione:</strong> Questa azione:
+                    <strong>VERRÀ ELIMINATO DEFINITIVAMENTE:</strong>
                     <ul class="mb-0 mt-2">
-                        <li>Disattiverà permanentemente l'utente</li>
-                        <li>Bloccherà il suo conto (se presente)</li>
-                        <li>Modificherà email e username per evitare conflitti</li>
-                        <li><strong>NON può essere annullata</strong></li>
+                        <li>L'utente e tutti i suoi dati personali</li>
+                        <li id="modal-account-deletion" {{ $user->account ? '' : 'style=display:none;' }}>Il conto corrente e tutte le transazioni</li>
+                        <li id="modal-balance-deletion" {{ ($user->account && $user->account->balance > 0) ? '' : 'style=display:none;' }} class="text-danger"><strong>Il saldo di €<span id="modal-balance-amount">{{ $user->account ? number_format($user->account->balance, 2, ',', '.') : '0,00' }}</span></strong></li>
+                        <li>Tutte le assegnazioni employee-client</li>
+                        <li>I beneficiari salvati</li>
+                        <li>Le domande di sicurezza</li>
+                        <li><strong class="text-danger">TUTTO SARÀ IRRECUPERABILE</strong></li>
                     </ul>
+                </div>
+
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" id="confirmHardDelete" required>
+                    <label class="form-check-label text-warning" for="confirmHardDelete">
+                        <strong>Confermo di voler eliminare DEFINITIVAMENTE tutti i dati</strong>
+                    </label>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Annulla
+                </button>
                 <form id="deleteForm" method="POST" class="d-inline">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash me-1"></i>Elimina Definitivamente
+                    <button type="submit" class="btn btn-danger" id="confirmDeleteBtn" disabled>
+                        <i class="fas fa-skull-crossbones me-1"></i>ELIMINA DEFINITIVAMENTE
                     </button>
                 </form>
             </div>
@@ -378,10 +433,65 @@
 @endif
 
 <script>
-function confirmDelete(userId) {
+document.addEventListener('DOMContentLoaded', function() {
+    const checkbox = document.getElementById('confirmHardDelete');
+    const deleteBtn = document.getElementById('confirmDeleteBtn');
+    
+    if (checkbox && deleteBtn) {
+        checkbox.addEventListener('change', function() {
+            deleteBtn.disabled = !this.checked;
+        });
+    }
+});
+
+function confirmDelete(userId, userName, userEmail, userUsername, userRole, accountNumber, accountIban, accountBalance) {
+    console.log('confirmDelete called with:', {userId, userName, userEmail, userUsername, userRole, accountNumber, accountIban, accountBalance});
+    
     const form = document.getElementById('deleteForm');
+    const checkbox = document.getElementById('confirmHardDelete');
+    const deleteBtn = document.getElementById('confirmDeleteBtn');
+    
+    // Imposta l'action del form
     form.action = `/admin/users/${userId}`;
     
+    // Reset checkbox e button
+    if (checkbox) checkbox.checked = false;
+    if (deleteBtn) deleteBtn.disabled = true;
+    
+    // Popola i dati utente nel modal
+    document.getElementById('modal-user-name').textContent = userName;
+    document.getElementById('modal-user-email').textContent = userEmail;
+    document.getElementById('modal-user-username').textContent = userUsername;
+    document.getElementById('modal-user-role').textContent = userRole;
+    
+    // Gestisci le informazioni del conto
+    const accountInfo = document.getElementById('modal-account-info');
+    const accountDeletion = document.getElementById('modal-account-deletion');
+    const balanceDeletion = document.getElementById('modal-balance-deletion');
+    
+    if (accountNumber && accountNumber !== 'null') {
+        // L'utente ha un conto
+        accountInfo.style.display = 'block';
+        accountDeletion.style.display = 'list-item';
+        
+        document.getElementById('modal-account-number').textContent = accountNumber;
+        document.getElementById('modal-account-iban').textContent = accountIban;
+        document.getElementById('modal-account-balance').textContent = parseFloat(accountBalance).toFixed(2).replace('.', ',');
+        
+        if (accountBalance > 0) {
+            balanceDeletion.style.display = 'list-item';
+            document.getElementById('modal-balance-amount').textContent = parseFloat(accountBalance).toFixed(2).replace('.', ',');
+        } else {
+            balanceDeletion.style.display = 'none';
+        }
+    } else {
+        // L'utente non ha un conto
+        accountInfo.style.display = 'none';
+        accountDeletion.style.display = 'none';
+        balanceDeletion.style.display = 'none';
+    }
+    
+    // Mostra il modal
     const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
     modal.show();
 }
