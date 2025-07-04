@@ -243,6 +243,15 @@ Route::middleware(['auth'])->group(function () {
         // Dashboard admin con controller
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         
+        // PROFILO ADMIN
+        Route::prefix('profile')->name('profile.')->group(function () {
+            Route::get('/', [ProfileController::class, 'show'])->name('show');
+            Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
+            Route::post('/update', [ProfileController::class, 'update'])->name('update');
+            Route::get('/change-password', [ProfileController::class, 'showChangePassword'])->name('change-password');
+            Route::post('/change-password', [ProfileController::class, 'changePassword'])->name('change-password.store');
+        });
+        
         // GESTIONE UTENTI
         Route::prefix('users')->name('users.')->group(function () {
             Route::get('/', [AdminUserController::class, 'index'])->name('index');
@@ -334,6 +343,15 @@ Route::middleware(['auth'])->group(function () {
             // DASHBOARD
             Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
             Route::get('/statistics', [EmployeeDashboardController::class, 'statistics'])->name('statistics');
+
+            // PROFILO EMPLOYEE
+            Route::prefix('profile')->name('profile.')->group(function () {
+                Route::get('/', [ProfileController::class, 'show'])->name('show');
+                Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
+                Route::post('/update', [ProfileController::class, 'update'])->name('update');
+                Route::get('/change-password', [ProfileController::class, 'showChangePassword'])->name('change-password');
+                Route::post('/change-password', [ProfileController::class, 'changePassword'])->name('change-password.store');
+            });
 
             // GESTIONE CLIENTI ASSEGNATI (solo per clienti assegnati)
             Route::prefix('clients')->name('clients.')->group(function () {

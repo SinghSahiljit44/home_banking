@@ -10,9 +10,19 @@
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
                         <h4><i class="fas fa-edit me-2"></i>Modifica Profilo</h4>
-                        <a href="{{ route('client.profile.show') }}" class="btn btn-outline-light btn-sm">
-                            <i class="fas fa-arrow-left me-1"></i>Torna al Profilo
-                        </a>
+                        @if(Auth::user()->isClient())
+                            <a href="{{ route('client.profile.show') }}" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-arrow-left me-1"></i>Torna al Profilo
+                            </a>
+                        @elseif(Auth::user()->isAdmin())
+                            <a href="{{ route('admin.profile.show') }}" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-arrow-left me-1"></i>Torna al Profilo
+                            </a>
+                        @else
+                            <a href="{{ route('employee.profile.show') }}" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-arrow-left me-1"></i>Torna al Profilo
+                            </a>
+                        @endif
                     </div>
                 </div>
                 <div class="card-body">
@@ -26,7 +36,7 @@
                         </div>
                     @endif
 
-                    <form method="POST" action="{{ route('client.profile.update') }}">
+                    <form method="POST" action="@if(Auth::user()->isClient()){{ route('client.profile.update') }}@elseif(Auth::user()->isAdmin()){{ route('admin.profile.update') }}@else{{ route('employee.profile.update') }}@endif">
                         @csrf
                         
                         <div class="card bg-dark border-secondary mb-4">
@@ -115,7 +125,11 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <p><strong>Username:</strong> {{ $user->username }}</p>
-                                        <p><strong>Ruolo:</strong> {{ ucfirst($user->role) }}</p>
+                                        <p><strong>Ruolo:</strong> 
+                                            <span class="badge bg-{{ $user->role === 'admin' ? 'danger' : ($user->role === 'employee' ? 'warning' : 'success') }}">
+                                                {{ ucfirst($user->role) }}
+                                            </span>
+                                        </p>
                                     </div>
                                     <div class="col-md-6">
                                         <p><strong>Registrato:</strong> {{ $user->created_at->format('d/m/Y') }}</p>
@@ -130,9 +144,19 @@
                         </div>
 
                         <div class="d-flex justify-content-between">
-                            <a href="{{ route('client.profile.show') }}" class="btn btn-secondary">
-                                <i class="fas fa-times me-1"></i>Annulla
-                            </a>
+                            @if(Auth::user()->isClient())
+                                <a href="{{ route('client.profile.show') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times me-1"></i>Annulla
+                                </a>
+                            @elseif(Auth::user()->isAdmin())
+                                <a href="{{ route('admin.profile.show') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times me-1"></i>Annulla
+                                </a>
+                            @else
+                                <a href="{{ route('employee.profile.show') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times me-1"></i>Annulla
+                                </a>
+                            @endif
                             <button type="submit" class="btn btn-success">
                                 <i class="fas fa-save me-1"></i>Salva Modifiche
                             </button>

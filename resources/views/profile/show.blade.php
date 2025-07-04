@@ -11,9 +11,19 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <h4><i class="fas fa-user me-2"></i>Il Mio Profilo</h4>
                         <div>
-                            <a href="{{ route('client.profile.edit') }}" class="btn btn-warning me-2">
-                                <i class="fas fa-edit me-1"></i>Modifica
-                            </a>
+                            @if(Auth::user()->isClient())
+                                <a href="{{ route('client.profile.edit') }}" class="btn btn-warning me-2">
+                                    <i class="fas fa-edit me-1"></i>Modifica
+                                </a>
+                            @elseif(Auth::user()->isAdmin())
+                                <a href="{{ route('admin.profile.edit') }}" class="btn btn-warning me-2">
+                                    <i class="fas fa-edit me-1"></i>Modifica
+                                </a>
+                            @else
+                                <a href="{{ route('employee.profile.edit') }}" class="btn btn-warning me-2">
+                                    <i class="fas fa-edit me-1"></i>Modifica
+                                </a>
+                            @endif
                             @if(Auth::user()->isClient())
                                 <a href="{{ route('dashboard.cliente') }}" class="btn btn-outline-light">
                                     <i class="fas fa-arrow-left me-1"></i>Dashboard
@@ -113,9 +123,19 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <p><strong>Password:</strong> ••••••••</p>
-                                    <a href="{{ route('client.profile.change-password') }}" class="btn btn-sm btn-outline-warning">
-                                        <i class="fas fa-key me-1"></i>Cambia Password
-                                    </a>
+                                    @if($user->isClient())
+                                        <a href="{{ route('client.profile.change-password') }}" class="btn btn-sm btn-outline-warning">
+                                            <i class="fas fa-key me-1"></i>Cambia Password
+                                        </a>
+                                    @elseif($user->isAdmin())
+                                        <a href="{{ route('admin.profile.change-password') }}" class="btn btn-sm btn-outline-warning">
+                                            <i class="fas fa-key me-1"></i>Cambia Password
+                                        </a>
+                                    @else
+                                        <a href="{{ route('employee.profile.change-password') }}" class="btn btn-sm btn-outline-warning">
+                                            <i class="fas fa-key me-1"></i>Cambia Password
+                                        </a>
+                                    @endif
                                 </div>
                                 <div class="col-md-6">
                                     @if($user->isClient())
@@ -145,6 +165,12 @@
                                 <div class="row">
                                     <div class="col-md-4 text-center">
                                         <h4 class="text-success">
+                                            {{ $user->assignedClients()->count() }}
+                                        </h4>
+                                        <p class="mb-0">Clienti Assegnati</p>
+                                    </div>
+                                    <div class="col-md-4 text-center">
+                                        <h4 class="text-success">
                                             {{ $user->assignedClients()->whereHas('account', function($q) { 
                                                 $q->where('is_active', true); 
                                             })->count() }}
@@ -164,17 +190,68 @@
                         </div>
                     @endif
 
+                    <!-- Statistiche per Admin -->
+                    @if($user->isAdmin())
+                        <div class="card bg-dark border-secondary mb-4">
+                            <div class="card-header">
+                                <h6><i class="fas fa-chart-bar me-2"></i>Panoramica Sistema</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3 text-center">
+                                        <h4 class="text-success">
+                                            {{ \App\Models\User::where('role', 'client')->count() }}
+                                        </h4>
+                                        <p class="mb-0">Clienti Totali</p>
+                                    </div>
+                                    <div class="col-md-3 text-center">
+                                        <h4 class="text-warning">
+                                            {{ \App\Models\User::where('role', 'employee')->count() }}
+                                        </h4>
+                                        <p class="mb-0">Employee</p>
+                                    </div>
+                                    <div class="col-md-3 text-center">
+                                        <h4 class="text-info">
+                                            {{ \App\Models\Account::count() }}
+                                        </h4>
+                                        <p class="mb-0">Conti Aperti</p>
+                                    </div>
+                                    <div class="col-md-3 text-center">
+                                        <h4 class="text-primary">
+                                            {{ \App\Models\Transaction::count() }}
+                                        </h4>
+                                        <p class="mb-0">Transazioni</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     <!-- Azioni -->
                     <div class="d-flex gap-2 flex-wrap">
-                        <a href="{{ route('client.profile.edit') }}" class="btn btn-warning">
-                            <i class="fas fa-edit me-2"></i>Modifica Profilo
-                        </a>
-                        <a href="{{ route('client.profile.change-password') }}" class="btn btn-outline-warning">
-                            <i class="fas fa-key me-2"></i>Cambia Password
-                        </a>
                         @if($user->isClient())
+                            <a href="{{ route('client.profile.edit') }}" class="btn btn-warning">
+                                <i class="fas fa-edit me-2"></i>Modifica Profilo
+                            </a>
+                            <a href="{{ route('client.profile.change-password') }}" class="btn btn-outline-warning">
+                                <i class="fas fa-key me-2"></i>Cambia Password
+                            </a>
                             <a href="{{ route('client.security.questions') }}" class="btn btn-outline-info">
                                 <i class="fas fa-shield-alt me-2"></i>Sicurezza
+                            </a>
+                        @elseif($user->isAdmin())
+                            <a href="{{ route('admin.profile.edit') }}" class="btn btn-warning">
+                                <i class="fas fa-edit me-2"></i>Modifica Profilo
+                            </a>
+                            <a href="{{ route('admin.profile.change-password') }}" class="btn btn-outline-warning">
+                                <i class="fas fa-key me-2"></i>Cambia Password
+                            </a>
+                        @else
+                            <a href="{{ route('employee.profile.edit') }}" class="btn btn-warning">
+                                <i class="fas fa-edit me-2"></i>Modifica Profilo
+                            </a>
+                            <a href="{{ route('employee.profile.change-password') }}" class="btn btn-outline-warning">
+                                <i class="fas fa-key me-2"></i>Cambia Password
                             </a>
                         @endif
                     </div>

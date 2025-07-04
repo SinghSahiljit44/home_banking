@@ -12,7 +12,7 @@ use Illuminate\Validation\Rule;
 class ProfileController extends Controller
 {
     /**
-     * Mostra i dati del profilo
+     * Mostra i dati del profilo - UNIVERSALE per tutti i ruoli
      */
     public function show()
     {
@@ -21,7 +21,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Mostra il form per modificare i dati personali
+     * Mostra il form per modificare i dati personali - UNIVERSALE
      */
     public function edit()
     {
@@ -30,7 +30,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Aggiorna i dati personali direttamente
+     * Aggiorna i dati personali direttamente - UNIVERSALE
      */
     public function update(Request $request)
     {
@@ -74,7 +74,10 @@ class ProfileController extends Controller
             // Aggiorna direttamente i dati
             $user->update($updateData);
 
-            return redirect()->route('client.profile.show')
+            // Redirect basato sul ruolo
+            $redirectRoute = $this->getProfileRoute($user);
+
+            return redirect()->route($redirectRoute)
                 ->with('success', 'Dati personali aggiornati con successo.');
 
         } catch (\Exception $e) {
@@ -88,7 +91,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Mostra il form per cambiare password
+     * Mostra il form per cambiare password - UNIVERSALE
      */
     public function showChangePassword()
     {
@@ -96,7 +99,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Cambia la password direttamente
+     * Cambia la password direttamente - UNIVERSALE
      */
     public function changePassword(Request $request)
     {
@@ -125,7 +128,10 @@ class ProfileController extends Controller
             // Aggiorna la password direttamente
             $user->update(['password' => Hash::make($request->new_password)]);
 
-            return redirect()->route('client.profile.show')
+            // Redirect basato sul ruolo
+            $redirectRoute = $this->getProfileRoute($user);
+
+            return redirect()->route($redirectRoute)
                 ->with('success', 'Password cambiata con successo.');
 
         } catch (\Exception $e) {
@@ -139,11 +145,55 @@ class ProfileController extends Controller
     }
 
     /**
-     * Cancella le modifiche in corso (non più necessario)
+     * Cancella le modifiche in corso (compatibilità)
      */
     public function cancelChanges()
     {
-        return redirect()->route('client.profile.show')
+        $user = Auth::user();
+        $redirectRoute = $this->getProfileRoute($user);
+        
+        return redirect()->route($redirectRoute)
             ->with('info', 'Operazione annullata.');
+    }
+
+    /**
+     * Metodi di compatibilità (non utilizzati ma mantenuti per sicurezza)
+     */
+    public function confirmChanges(Request $request)
+    {
+        return $this->update($request);
+    }
+
+    public function confirmPasswordChange(Request $request)
+    {
+        return $this->changePassword($request);
+    }
+
+    /**
+     * Determina la rotta del profilo in base al ruolo
+     */
+    private function getProfileRoute($user): string
+    {
+        if ($user->isAdmin()) {
+            return 'admin.profile.show';
+        } elseif ($user->isEmployee()) {
+            return 'employee.profile.show';
+        } else {
+            return 'client.profile.show';
+        }
+    }
+
+    /**
+     * Determina la dashboard in base al ruolo (helper)
+     */
+    private function getDashboardRoute($user): string
+    {
+        if ($user->isAdmin()) {
+            return 'dashboard.admin';
+        } elseif ($user->isEmployee()) {
+            return 'dashboard.employee';
+        } else {
+            return 'dashboard.cliente';
+        }
     }
 }

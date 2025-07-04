@@ -10,9 +10,19 @@
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
                         <h4><i class="fas fa-key me-2"></i>Cambia Password</h4>
-                        <a href="{{ route('client.profile.show') }}" class="btn btn-outline-light btn-sm">
-                            <i class="fas fa-arrow-left me-1"></i>Torna al Profilo
-                        </a>
+                        @if(Auth::user()->isClient())
+                            <a href="{{ route('client.profile.show') }}" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-arrow-left me-1"></i>Torna al Profilo
+                            </a>
+                        @elseif(Auth::user()->isAdmin())
+                            <a href="{{ route('admin.profile.show') }}" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-arrow-left me-1"></i>Torna al Profilo
+                            </a>
+                        @else
+                            <a href="{{ route('employee.profile.show') }}" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-arrow-left me-1"></i>Torna al Profilo
+                            </a>
+                        @endif
                     </div>
                 </div>
                 <div class="card-body">
@@ -31,7 +41,7 @@
                         <strong>Sicurezza:</strong> Scegli una password sicura di almeno 8 caratteri.
                     </div>
 
-                    <form method="POST" action="{{ route('client.profile.change-password.store') }}" id="passwordForm">
+                    <form method="POST" action="@if(Auth::user()->isClient()){{ route('client.profile.change-password.store') }}@elseif(Auth::user()->isAdmin()){{ route('admin.profile.change-password.store') }}@else{{ route('employee.profile.change-password.store') }}@endif" id="passwordForm">
                         @csrf
                         
                         <div class="mb-3">
@@ -87,9 +97,19 @@
                         </div>
 
                         <div class="d-flex justify-content-between">
-                            <a href="{{ route('client.profile.show') }}" class="btn btn-secondary">
-                                <i class="fas fa-times me-1"></i>Annulla
-                            </a>
+                            @if(Auth::user()->isClient())
+                                <a href="{{ route('client.profile.show') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times me-1"></i>Annulla
+                                </a>
+                            @elseif(Auth::user()->isAdmin())
+                                <a href="{{ route('admin.profile.show') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times me-1"></i>Annulla
+                                </a>
+                            @else
+                                <a href="{{ route('employee.profile.show') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times me-1"></i>Annulla
+                                </a>
+                            @endif
                             <button type="submit" class="btn btn-success" id="submitBtn" disabled>
                                 <i class="fas fa-save me-1"></i>Cambia Password
                             </button>
