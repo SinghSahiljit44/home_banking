@@ -220,29 +220,7 @@ class EmployeeDashboardController extends Controller
             abort(403, 'Non hai accesso a questa transazione');
         }
         
-        // Se è una richiesta AJAX, restituisci solo l'HTML del modal
-        if (request()->ajax() || request()->wantsJson()) {
-            $data = [
-                'id' => $transaction->id,
-                'reference_code' => $transaction->reference_code,
-                'amount' => $transaction->amount,
-                'formatted_amount' => number_format($transaction->amount, 2, ',', '.'),
-                'type' => $transaction->type,
-                'status' => $transaction->status,
-                'description' => $transaction->description,
-                'created_at' => $transaction->created_at,
-                'from_user' => $transaction->fromAccount ? $transaction->fromAccount->user->full_name : 'Sistema',
-                'to_user' => $transaction->toAccount ? $transaction->toAccount->user->full_name : 'Esterno',
-                'from_account' => $transaction->fromAccount ? $transaction->fromAccount->account_number : '-',
-                'to_account' => $transaction->toAccount ? $transaction->toAccount->account_number : '-',
-                'from_iban' => $transaction->fromAccount ? $transaction->fromAccount->iban : '-',
-                'to_iban' => $transaction->toAccount ? $transaction->toAccount->iban : '-',
-            ];
-            
-            return view('employee.transactions.modal-details', compact('transaction', 'data'))->render();
-        }
-        
-        // Per richieste normali, usa la vista completa
+        // Prepara i dati per la vista
         $data = [
             'id' => $transaction->id,
             'reference_code' => $transaction->reference_code,
@@ -260,6 +238,12 @@ class EmployeeDashboardController extends Controller
             'to_iban' => $transaction->toAccount ? $transaction->toAccount->iban : '-',
         ];
         
+        // Se è una richiesta AJAX, restituisci solo l'HTML del modal
+        if (request()->ajax() || request()->wantsJson()) {
+            return view('employee.transactions.modal-details', compact('transaction', 'data'))->render();
+        }
+        
+        // Per richieste normali, usa la vista completa
         return view('employee.transactions.show', compact('transaction', 'data'));
     }
     /**

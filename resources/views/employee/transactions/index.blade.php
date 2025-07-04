@@ -331,7 +331,6 @@
 <script>
 
 function showTransactionDetails(transactionId) {
-
     // Mostra loading nel modal
     const modal = new bootstrap.Modal(document.getElementById('transactionModal'));
     const modalBody = document.getElementById('transactionDetails');
@@ -348,7 +347,12 @@ function showTransactionDetails(transactionId) {
     modal.show();
 
     // Carica i dettagli via AJAX
-    fetch(`/employee/transactions/details/${transactionId}`)
+    fetch(`/employee/transactions/details/${transactionId}`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'text/html'
+        }
+    })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Errore nel caricamento dei dettagli');
@@ -356,16 +360,7 @@ function showTransactionDetails(transactionId) {
             return response.text();
         })
         .then(html => {
-            // Estrai solo il contenuto del body della response
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const content = doc.querySelector('.container');
-            
-            if (content) {
-                modalBody.innerHTML = content.innerHTML;
-            } else {
-                modalBody.innerHTML = html;
-            }
+            modalBody.innerHTML = html;
         })
         .catch(error => {
             console.error('Errore:', error);
@@ -373,24 +368,33 @@ function showTransactionDetails(transactionId) {
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     Errore nel caricamento dei dettagli della transazione.
+                    <br><small>Puoi provare a <a href="/employee/transactions/details/${transactionId}" target="_blank">aprire i dettagli in una nuova pagina</a>.</small>
                 </div>
             `;
         });
 }
 
+// Funzione per aprire i dettagli in una nuova finestra/tab
+function openTransactionInNewTab(transactionId) {
+    window.open(`/employee/transactions/details/${transactionId}`, '_blank');
+}
+
+
 // Auto-submit form quando cambiano i filtri
 document.addEventListener('DOMContentLoaded', function() {
     const filterForm = document.querySelector('form[action*="transactions"]');
-    const selectInputs = filterForm.querySelectorAll('select, input[type="date"]');
-    
-    selectInputs.forEach(input => {
-        input.addEventListener('change', function() {
-            // Auto-submit dopo un breve delay per UX migliore
-            setTimeout(() => {
-                filterForm.submit();
-            }, 300);
+    if (filterForm) {
+        const selectInputs = filterForm.querySelectorAll('select, input[type="date"]');
+        
+        selectInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                // Auto-submit dopo un breve delay per UX migliore
+                setTimeout(() => {
+                    filterForm.submit();
+                }, 300);
+            });
         });
-    });
+    }
 });
 
 // Evidenzia le transazioni di oggi
@@ -405,6 +409,35 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+function copyReferenceCode(code) {
+    navigator.clipboard.writeText(code).then(function() {
+        // Mostra feedback all'utente
+        const toast = document.createElement('div');
+        toast.className = 'toast position-fixed bottom-0 end-0 m-3';
+        toast.innerHTML = `
+            <div class="toast-header bg-success text-white">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong class="me-auto">Copiato!</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                Codice riferimento copiato negli appunti.
+            </div>
+        `;
+        document.body.appendChild(toast);
+        
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+        
+        // Rimuovi il toast dopo che si è nascosto
+        toast.addEventListener('hidden.bs.toast', function() {
+            document.body.removeChild(toast);
+        });
+    }).catch(function(err) {
+        console.error('Errore nella copia:', err);
+    });
+}
 </script>
 
 <style>
