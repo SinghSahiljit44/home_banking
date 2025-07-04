@@ -202,8 +202,9 @@ class AdminUserController extends Controller
      */
     public function update(Request $request, User $user)
     {
-        // CONTROLLO: Admin non possono modificare altri admin
         $currentUser = Auth::user();
+        
+        // PROTEZIONE: Admin non possono modificare altri admin
         if ($user->isAdmin() && $currentUser->id !== $user->id) {
             return redirect()->route('admin.users.index')
                 ->withErrors(['error' => 'Non puoi modificare i dati di altri amministratori.']);
@@ -233,8 +234,8 @@ class AdminUserController extends Controller
                 'address' => $request->address,
             ];
 
-            // Solo admin possono cambiare lo stato di attivazione di altri utenti
-            if ($currentUser->isAdmin() && $currentUser->id !== $user->id) {
+            // PROTEZIONE: Solo admin possono cambiare lo stato di altri utenti NON ADMIN
+            if ($currentUser->isAdmin() && $currentUser->id !== $user->id && !$user->isAdmin()) {
                 $updateData['is_active'] = $request->boolean('is_active');
             }
 
@@ -258,6 +259,7 @@ class AdminUserController extends Controller
             return back()->withErrors(['general' => 'Errore durante l\'aggiornamento dell\'utente.'])->withInput();
         }
     }
+
 
     /**
      * Elimina un utente (soft delete) - FIXED
@@ -429,8 +431,9 @@ class AdminUserController extends Controller
     {
         $currentUser = Auth::user();
 
-        if ($user->isAdmin() && $user->id !== $currentUser->id) {
-            return back()->withErrors(['error' => 'Non puoi modificare lo stato di altri amministratori.']);
+        // PROTEZIONE RINFORZATA: Admin non possono modificare stato di altri admin
+        if ($user->isAdmin()) {
+            return back()->withErrors(['error' => 'Non puoi modificare lo stato di un amministratore.']);
         }
 
         if ($user->id === $currentUser->id) {
@@ -442,7 +445,6 @@ class AdminUserController extends Controller
 
         $status = $user->is_active ? 'attivato' : 'disattivato';
         
-        // Log dell'operazione
         \Log::info('User status changed by admin:', [
             'admin_id' => $currentUser->id,
             'admin_name' => $currentUser->full_name,
@@ -454,14 +456,15 @@ class AdminUserController extends Controller
 
         return back()->with('success', "Utente {$status} con successo.");
     }
-
+    
     /**
      * Rimuove un utente (Admin può rimuovere tutti tranne admin) - FIXED
      */
-    public function removeUser(User $user)
+     public function removeUser(User $user)
     {
         $currentUser = Auth::user();
 
+        // PROTEZIONE RINFORZATA: Admin non possono rimuovere altri admin
         if ($user->isAdmin()) {
             return back()->withErrors(['error' => 'Non puoi rimuovere un amministratore.']);
         }
@@ -470,73 +473,10 @@ class AdminUserController extends Controller
             return back()->withErrors(['error' => 'Non puoi rimuovere te stesso.']);
         }
 
-        try {
-            \DB::beginTransaction();
-
-            // Salva dati per logging prima dell'eliminazione
-            $userData = [
-                'id' => $user->id,
-                'email' => $user->email,
-                'username' => $user->username,
-                'full_name' => $user->full_name,
-                'role' => $user->role,
-                'account_balance' => $user->account ? $user->account->balance : 0,
-                'account_number' => $user->account ? $user->account->account_number : null,
-            ];
-
-            // Elimina tutto come nel metodo destroy
-            if ($user->account) {
-                $user->account->incomingTransactions()->delete();
-                $user->account->outgoingTransactions()->delete();
-                $user->account->delete();
-            }
-
-            if ($user->isEmployee()) {
-                $user->employeeAssignments()->delete();
-            }
-            
-            if ($user->isClient()) {
-                $user->clientAssignments()->delete();
-            }
-
-            $user->beneficiaries()->delete();
-
-            if ($user->securityQuestion) {
-                $user->securityQuestion->delete();
-            }
-
-            $user->delete();
-
-            \DB::commit();
-
-            // Log dell'operazione
-            \Log::warning('User permanently removed by admin:', [
-                'admin_id' => $currentUser->id,
-                'admin_name' => $currentUser->full_name,
-                'removed_user_data' => $userData,
-                'removal_type' => 'HARD_DELETE',
-                'timestamp' => now()->toISOString(),
-            ]);
-
-            $message = "Utente {$userData['full_name']} rimosso definitivamente dal sistema.";
-            if ($userData['account_balance'] > 0) {
-                $message .= " Saldo di €" . number_format($userData['account_balance'], 2, ',', '.') . " eliminato.";
-            }
-
-            return back()->with('success', $message);
-
-        } catch (\Exception $e) {
-            \DB::rollBack();
-            
-            \Log::error('User hard removal failed:', [
-                'admin_id' => $currentUser->id,
-                'target_user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return back()->withErrors(['error' => 'Errore durante la rimozione dell\'utente.']);
-        }
+        // Usa la stessa logica del metodo destroy
+        return $this->destroy($user);
     }
+    
     /**
      * Metodo privato per creare un conto - INVARIATO
      */

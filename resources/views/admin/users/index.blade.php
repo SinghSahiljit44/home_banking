@@ -148,15 +148,17 @@
                                 <td class="text-center">
                                     <div class="btn-group" role="group">
                                         <a href="{{ route('admin.users.show', $user) }}" 
-                                           class="btn btn-sm btn-outline-info" 
-                                           title="Visualizza">
+                                        class="btn btn-sm btn-outline-info" 
+                                        title="Visualizza">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="{{ route('admin.users.edit', $user) }}" 
-                                           class="btn btn-sm btn-outline-warning" 
-                                           title="Modifica">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
+                                        @if(!$user->isAdmin())
+                                            <a href="{{ route('admin.users.edit', $user) }}" 
+                                            class="btn btn-sm btn-outline-warning" 
+                                            title="Modifica">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        @endif
                                         @if(!$user->isAdmin())
                                             <button type="button" 
                                                     class="btn btn-sm btn-outline-danger" 
@@ -166,7 +168,6 @@
                                             </button>
                                         @endif
                                     </div>
-
                                     <!-- Azioni aggiuntive per clienti -->
                                     @if($user->role === 'client')
                                         <div class="mt-1">

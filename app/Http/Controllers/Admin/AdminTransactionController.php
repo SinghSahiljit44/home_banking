@@ -343,7 +343,10 @@ class AdminTransactionController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        if ($user->isAdmin() && $user->id !== Auth::id()) {
+        $currentUser = Auth::user();
+
+        // PROTEZIONE RINFORZATA: Admin non possono modificare credenziali di altri admin
+        if ($user->isAdmin() && $user->id !== $currentUser->id) {
             return back()->withErrors(['error' => 'Non puoi modificare le credenziali di altri amministratori.']);
         }
 
@@ -369,10 +372,9 @@ class AdminTransactionController extends Controller
 
             $user->save();
 
-            // Log dell'operazione
             \Log::info('User credentials reset by admin:', [
-                'admin_id' => Auth::id(),
-                'admin_name' => Auth::user()->full_name,
+                'admin_id' => $currentUser->id,
+                'admin_name' => $currentUser->full_name,
                 'target_user_id' => $user->id,
                 'target_user_name' => $user->full_name,
                 'changes' => $changes,
@@ -384,7 +386,7 @@ class AdminTransactionController extends Controller
 
         } catch (\Exception $e) {
             \Log::error('Admin credentials reset failed:', [
-                'admin_id' => Auth::id(),
+                'admin_id' => $currentUser->id,
                 'target_user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);

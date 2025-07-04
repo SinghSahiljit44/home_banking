@@ -191,9 +191,6 @@
         <div class="card-header">
             <div class="d-flex justify-content-between align-items-center">
                 <h5><i class="fas fa-list me-2"></i>Assegnazioni Attive ({{ $assignments->total() }})</h5>
-                <a href="{{ route('admin.assignments.statistics') }}" class="btn btn-outline-info btn-sm">
-                    <i class="fas fa-chart-bar me-1"></i>Statistiche
-                </a>
             </div>
         </div>
         <div class="card-body">
@@ -245,12 +242,6 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group" role="group">
-                                        <a href="{{ route('admin.assignments.employee', $assignment->employee) }}" 
-                                           class="btn btn-sm btn-outline-info" 
-                                           title="Vedi Employee">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        
                                         <button type="button" 
                                                 class="btn btn-sm btn-outline-danger" 
                                                 onclick="confirmUnassign({{ $assignment->employee->id }}, {{ $assignment->client->id }}, '{{ $assignment->employee->full_name }}', '{{ $assignment->client->full_name }}')"
