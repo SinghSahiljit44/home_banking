@@ -109,69 +109,6 @@
                             </div>
                         </div>
 
-                        <!-- Stato Account -->
-                        <div class="card bg-dark border-secondary mb-4">
-                            <div class="card-header">
-                                <h6><i class="fas fa-cogs me-2"></i>Stato Account</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" 
-                                               type="checkbox" 
-                                               id="is_active" 
-                                               name="is_active" 
-                                               value="1" 
-                                               {{ old('is_active', $user->is_active) ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="is_active">
-                                            Account Attivo
-                                        </label>
-                                    </div>
-                                    <div class="form-text">Se disabilitato, l'utente non potrà accedere al sistema</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Reset Password -->
-                        <div class="card bg-dark border-secondary mb-4">
-                            <div class="card-header">
-                                <h6><i class="fas fa-key me-2"></i>Reset Password</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" 
-                                               type="checkbox" 
-                                               id="reset_password" 
-                                               name="reset_password" 
-                                               value="1">
-                                        <label class="form-check-label" for="reset_password">
-                                            Reset Password
-                                        </label>
-                                    </div>
-                                    <div class="form-text">Se abilitato, inserisci una nuova password per l'utente</div>
-                                </div>
-
-                                <div class="mb-3" id="passwordGroup" style="display: none;">
-                                    <label for="new_password" class="form-label">Nuova Password</label>
-                                    <div class="input-group">
-                                        <input type="password" 
-                                               class="form-control @error('new_password') is-invalid @enderror" 
-                                               id="new_password" 
-                                               name="new_password" 
-                                               minlength="8">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('new_password')">
-                                            <i class="fas fa-eye" id="new_password_icon"></i>
-                                        </button>
-                                    </div>
-                                    @error('new_password')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                    <div class="form-text">Minimo 8 caratteri</div>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Informazioni di Sola Lettura -->
                         <div class="card bg-info bg-opacity-10 border-info mb-4">
                             <div class="card-header">

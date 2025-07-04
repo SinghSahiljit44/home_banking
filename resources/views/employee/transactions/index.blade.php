@@ -329,7 +329,55 @@
 </div>
 
 <script>
- 
+
+function showTransactionDetails(transactionId) {
+
+    // Mostra loading nel modal
+    const modal = new bootstrap.Modal(document.getElementById('transactionModal'));
+    const modalBody = document.getElementById('transactionDetails');
+    
+    modalBody.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Caricamento...</span>
+            </div>
+            <p class="mt-2">Caricamento dettagli transazione...</p>
+        </div>
+    `;
+    
+    modal.show();
+
+    // Carica i dettagli via AJAX
+    fetch(`/employee/transactions/details/${transactionId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Errore nel caricamento dei dettagli');
+            }
+            return response.text();
+        })
+        .then(html => {
+            // Estrai solo il contenuto del body della response
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const content = doc.querySelector('.container');
+            
+            if (content) {
+                modalBody.innerHTML = content.innerHTML;
+            } else {
+                modalBody.innerHTML = html;
+            }
+        })
+        .catch(error => {
+            console.error('Errore:', error);
+            modalBody.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Errore nel caricamento dei dettagli della transazione.
+                </div>
+            `;
+        });
+}
+
 // Auto-submit form quando cambiano i filtri
 document.addEventListener('DOMContentLoaded', function() {
     const filterForm = document.querySelector('form[action*="transactions"]');

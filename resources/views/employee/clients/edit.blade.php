@@ -106,20 +106,6 @@
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
-
-                                <div class="mb-3">
-                                    <label for="notes" class="form-label">Note Personali</label>
-                                    <textarea class="form-control @error('notes') is-invalid @enderror" 
-                                              id="notes" 
-                                              name="notes" 
-                                              rows="3" 
-                                              maxlength="1000"
-                                              placeholder="Note private visibili solo a te...">{{ old('notes') }}</textarea>
-                                    @error('notes')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                    <div class="form-text">Queste note sono private e visibili solo a te</div>
-                                </div>
                             </div>
                         </div>
 

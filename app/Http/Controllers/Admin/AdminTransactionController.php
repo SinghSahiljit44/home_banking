@@ -166,7 +166,7 @@ class AdminTransactionController extends Controller
     }
 
     /**
-     * Crea un bonifico per conto di un cliente (ADMIN può fare bonifici per tutti)
+     * Crea un bonifico per conto di un cliente (ADMIN può fare bonifici per tutti) - AGGIORNATO
      */
     public function createTransferForClient(Request $request, User $client)
     {
@@ -196,6 +196,9 @@ class AdminTransactionController extends Controller
         try {
             $description = $request->description . " - Operazione Admin: " . Auth::user()->full_name;
             
+            // Salva il saldo prima della transazione
+            $balanceBeforeTransaction = $client->account->balance;
+            
             $result = $this->transactionService->processBonifico(
                 $client->account,
                 strtoupper(str_replace(' ', '', $request->recipient_iban)),
@@ -212,10 +215,22 @@ class AdminTransactionController extends Controller
                 'client_name' => $client->full_name,
                 'amount' => $request->amount,
                 'recipient_iban' => $request->recipient_iban,
+                'reference_code' => $result['reference_code'] ?? 'N/A',
             ]);
 
             if ($result['success']) {
-                return back()->with('success', "Bonifico creato con successo per {$client->full_name}. Codice: {$result['reference_code']}");
+                // MODIFICA PRINCIPALE: Invece di tornare alla pagina utente, mostra la pagina di successo
+                return view('admin.transactions.transfer-success', [
+                    'client' => $client,
+                    'transaction' => $result['transaction'],
+                    'reference_code' => $result['reference_code'],
+                    'amount' => $request->amount,
+                    'recipient_iban' => $request->recipient_iban,
+                    'beneficiary_name' => $request->beneficiary_name,
+                    'description' => $description,
+                    'new_balance' => $client->account->fresh()->balance,
+                    'previous_balance' => $balanceBeforeTransaction
+                ]);
             } else {
                 return back()->withErrors(['general' => $result['message']]);
             }
@@ -394,6 +409,7 @@ class AdminTransactionController extends Controller
             return back()->withErrors(['general' => 'Errore durante l\'aggiornamento delle credenziali.']);
         }
     }
+    
     public function exportCsv(Request $request)
     {
         $query = Transaction::with(['fromAccount.user', 'toAccount.user']);

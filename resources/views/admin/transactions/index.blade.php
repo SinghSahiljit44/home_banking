@@ -107,9 +107,6 @@
                         <a href="{{ route('admin.transactions.index') }}" class="btn btn-secondary btn-sm">
                             <i class="fas fa-times me-1"></i>Reset Filtri
                         </a>
-                        <a href="{{ route('admin.transactions.export-csv', request()->query()) }}" class="btn btn-success btn-sm">
-                            <i class="fas fa-download me-1"></i>Esporta CSV
-                        </a>
                     </div>
                 </div>
             </form>

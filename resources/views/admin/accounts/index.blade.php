@@ -56,11 +56,6 @@
                                 <td>{{ $account->created_at->format('d/m/Y') }}</td>
                                 <td class="text-center">
                                     <div class="btn-group" role="group">
-                                        <a href="{{ route('admin.accounts.show', $account) }}" 
-                                           class="btn btn-sm btn-outline-info" 
-                                           title="Visualizza">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
                                         @if($account->is_active)
                                             <form method="POST" action="{{ route('admin.accounts.freeze', $account) }}" class="d-inline">
                                                 @csrf

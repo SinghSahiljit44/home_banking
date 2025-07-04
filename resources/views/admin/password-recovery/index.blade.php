@@ -9,11 +9,6 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-key me-2"></i>Recupero Credenziali</h2>
                 <div>
-                    @if(Auth::user()->isAdmin())
-                        <a href="{{ route('admin.password-recovery.audit-log') }}" class="btn btn-outline-info me-2">
-                            <i class="fas fa-history me-1"></i>Audit Log
-                        </a>
-                    @endif
                     <a href="{{ Auth::user()->isAdmin() ? route('dashboard.admin') : route('dashboard.employee') }}" class="btn btn-outline-light">
                         <i class="fas fa-arrow-left me-1"></i>Dashboard
                     </a>
@@ -178,13 +173,6 @@
                         </div>
                     </div>
                 </div>
-
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="notify_user" name="notify_user" value="1">
-                    <label class="form-check-label" for="notify_user">
-                        Invia notifica email all'utente
-                    </label>
-                </div>
             </form>
         </div>
     </div>
@@ -266,15 +254,6 @@
                                 <label for="bulk_reason" class="form-label">Motivo *</label>
                                 <input type="text" class="form-control" id="bulk_reason" name="reason" 
                                        placeholder="Motivo del reset multiplo" maxlength="500" required>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">&nbsp;</label>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="bulk_notify_users" name="notify_users" value="1">
-                                    <label class="form-check-label" for="bulk_notify_users">
-                                        Notifica via email
-                                    </label>
-                                </div>
                             </div>
                         </div>
 
@@ -451,12 +430,6 @@
                                placeholder="Motivo del reset" maxlength="500" required>
                     </div>
                     
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="quick_notify_user" name="notify_user" value="1">
-                        <label class="form-check-label" for="quick_notify_user">
-                            Invia notifica email all'utente
-                        </label>
-                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
@@ -592,16 +565,6 @@ function quickResetPassword(userId, userName) {
     }
 @endif
 
-// Auto-dismiss alerts after 10 seconds (longer for password results)
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
-        const alerts = document.querySelectorAll('.alert');
-        alerts.forEach(function(alert) {
-            const bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
-        });
-    }, 10000);
-});
 </script>
 
 <style>

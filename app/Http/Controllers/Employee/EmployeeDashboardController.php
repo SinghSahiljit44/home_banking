@@ -194,9 +194,55 @@ class EmployeeDashboardController extends Controller
      */
     public function showTransactionDetails($id)
     {
+        $employee = Auth::user();
         $transaction = Transaction::with(['fromAccount.user', 'toAccount.user'])->findOrFail($id);
         
-        // Prepara i dati per la vista
+        // Verifica che la transazione appartenga a un cliente assegnato
+        $hasAccess = false;
+        
+        // Ottieni clienti assegnati
+        $assignedClientIds = EmployeeClientAssignment::where('employee_id', $employee->id)
+                                                    ->where('is_active', true)
+                                                    ->pluck('client_id');
+        
+        // Verifica se la transazione coinvolge un cliente assegnato
+        if ($transaction->fromAccount && $transaction->fromAccount->user && 
+            $assignedClientIds->contains($transaction->fromAccount->user_id)) {
+            $hasAccess = true;
+        }
+        
+        if ($transaction->toAccount && $transaction->toAccount->user && 
+            $assignedClientIds->contains($transaction->toAccount->user_id)) {
+            $hasAccess = true;
+        }
+        
+        if (!$hasAccess) {
+            abort(403, 'Non hai accesso a questa transazione');
+        }
+        
+        // Se è una richiesta AJAX, restituisci solo l'HTML del modal
+        if (request()->ajax() || request()->wantsJson()) {
+            $data = [
+                'id' => $transaction->id,
+                'reference_code' => $transaction->reference_code,
+                'amount' => $transaction->amount,
+                'formatted_amount' => number_format($transaction->amount, 2, ',', '.'),
+                'type' => $transaction->type,
+                'status' => $transaction->status,
+                'description' => $transaction->description,
+                'created_at' => $transaction->created_at,
+                'from_user' => $transaction->fromAccount ? $transaction->fromAccount->user->full_name : 'Sistema',
+                'to_user' => $transaction->toAccount ? $transaction->toAccount->user->full_name : 'Esterno',
+                'from_account' => $transaction->fromAccount ? $transaction->fromAccount->account_number : '-',
+                'to_account' => $transaction->toAccount ? $transaction->toAccount->account_number : '-',
+                'from_iban' => $transaction->fromAccount ? $transaction->fromAccount->iban : '-',
+                'to_iban' => $transaction->toAccount ? $transaction->toAccount->iban : '-',
+            ];
+            
+            return view('employee.transactions.modal-details', compact('transaction', 'data'))->render();
+        }
+        
+        // Per richieste normali, usa la vista completa
         $data = [
             'id' => $transaction->id,
             'reference_code' => $transaction->reference_code,
@@ -206,7 +252,7 @@ class EmployeeDashboardController extends Controller
             'status' => $transaction->status,
             'description' => $transaction->description,
             'created_at' => $transaction->created_at,
-            'from_user' => $transaction->fromAccount ? $transaction->fromAccount->user->full_name : 'Esterno',
+            'from_user' => $transaction->fromAccount ? $transaction->fromAccount->user->full_name : 'Sistema',
             'to_user' => $transaction->toAccount ? $transaction->toAccount->user->full_name : 'Esterno',
             'from_account' => $transaction->fromAccount ? $transaction->fromAccount->account_number : '-',
             'to_account' => $transaction->toAccount ? $transaction->toAccount->account_number : '-',
@@ -214,10 +260,8 @@ class EmployeeDashboardController extends Controller
             'to_iban' => $transaction->toAccount ? $transaction->toAccount->iban : '-',
         ];
         
-        // Restituisce una vista invece di JSON
-        return view(view: 'employee.transactions.show',compact('transaction', 'data'));
+        return view('employee.transactions.show', compact('transaction', 'data'));
     }
-
     /**
      * Statistiche avanzate employee
      */
