@@ -190,6 +190,35 @@ class EmployeeDashboardController extends Controller
     }
 
     /**
+     * Mostra dettagli di una transazione specifica (solo per clienti assegnati)
+     */
+    public function showTransactionDetails($id)
+    {
+        $transaction = Transaction::with(['fromAccount.user', 'toAccount.user'])->findOrFail($id);
+        
+        // Prepara i dati per la vista
+        $data = [
+            'id' => $transaction->id,
+            'reference_code' => $transaction->reference_code,
+            'amount' => $transaction->amount,
+            'formatted_amount' => number_format($transaction->amount, 2, ',', '.'),
+            'type' => $transaction->type,
+            'status' => $transaction->status,
+            'description' => $transaction->description,
+            'created_at' => $transaction->created_at,
+            'from_user' => $transaction->fromAccount ? $transaction->fromAccount->user->full_name : 'Esterno',
+            'to_user' => $transaction->toAccount ? $transaction->toAccount->user->full_name : 'Esterno',
+            'from_account' => $transaction->fromAccount ? $transaction->fromAccount->account_number : '-',
+            'to_account' => $transaction->toAccount ? $transaction->toAccount->account_number : '-',
+            'from_iban' => $transaction->fromAccount ? $transaction->fromAccount->iban : '-',
+            'to_iban' => $transaction->toAccount ? $transaction->toAccount->iban : '-',
+        ];
+        
+        // Restituisce una vista invece di JSON
+        return view(view: 'employee.transactions.show',compact('transaction', 'data'));
+    }
+
+    /**
      * Statistiche avanzate employee
      */
     public function statistics()

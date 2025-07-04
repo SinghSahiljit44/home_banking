@@ -146,11 +146,6 @@
         <div class="card-header">
             <div class="d-flex justify-content-between align-items-center">
                 <h5><i class="fas fa-list me-2"></i>Transazioni ({{ $transactions->total() }})</h5>
-                <div>
-                    <button class="btn btn-outline-success btn-sm" onclick="exportTransactions()">
-                        <i class="fas fa-download me-1"></i>Esporta CSV
-                    </button>
-                </div>
             </div>
         </div>
         <div class="card-body">
@@ -334,47 +329,7 @@
 </div>
 
 <script>
-// Mostra dettagli transazione
-function showTransactionDetails(transactionId) {
-    const modalBody = document.getElementById('transactionDetails');
-    const modal = new bootstrap.Modal(document.getElementById('transactionModal'));
-    
-    // Trova la transazione nella pagina corrente
-    // In un'implementazione reale, faresti una chiamata AJAX per ottenere i dettagli completi
-    const transactionCards = document.querySelectorAll('.card.bg-dark');
-    
-    modalBody.innerHTML = `
-        <div class="text-center">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Caricamento...</span>
-            </div>
-            <p class="mt-2">Caricamento dettagli transazione...</p>
-        </div>
-    `;
-    
-    modal.show();
-    
-    // Simula caricamento
-    setTimeout(() => {
-        modalBody.innerHTML = `
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
-                Funzionalità in sviluppo. I dettagli completi della transazione saranno disponibili prossimamente.
-            </div>
-            <p><strong>ID Transazione:</strong> ${transactionId}</p>
-        `;
-    }, 1000);
-}
-
-// Esporta transazioni in CSV
-function exportTransactions() {
-    const params = new URLSearchParams(window.location.search);
-    params.set('export', 'csv');
-    
-    // In un'implementazione reale, faresti una chiamata alla route di export
-    alert('Funzionalità di export in sviluppo. Sarà disponibile nella prossima versione.');
-}
-
+ 
 // Auto-submit form quando cambiano i filtri
 document.addEventListener('DOMContentLoaded', function() {
     const filterForm = document.querySelector('form[action*="transactions"]');

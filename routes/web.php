@@ -366,6 +366,7 @@ Route::middleware(['auth'])->group(function () {
             // TRANSAZIONI CLIENTI ASSEGNATI (solo transazioni dei clienti assegnati)
             Route::prefix('transactions')->name('transactions.')->group(function () {
                 Route::get('/', [EmployeeDashboardController::class, 'transactions'])->name('index');
+                Route::get('/{id}', [EmployeeDashboardController::class, 'showTransactionDetails'])->name('details');
             });
 
             // RECUPERO CREDENZIALI CLIENTI ASSEGNATI (solo per clienti assegnati)
