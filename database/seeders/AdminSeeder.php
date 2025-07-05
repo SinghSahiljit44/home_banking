@@ -6,40 +6,11 @@ use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\SecurityQuestion;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 
 class AdminSeeder extends Seeder
 {
     public function run(): void
     {
-        // Prima creiamo i ruoli base se non esistono
-        $adminRole = Role::firstOrCreate(['name' => 'admin']);
-        $clientRole = Role::firstOrCreate(['name' => 'client']);
-        $employeeRole = Role::firstOrCreate(['name' => 'employee']);
-
-        // Creiamo alcuni permessi base
-        $permissions = [
-            'view_dashboard',
-            'manage_users',
-            'view_accounts',
-            'make_transfers',
-            'view_transactions'
-        ];
-
-        foreach ($permissions as $permission) {
-            Permission::firstOrCreate(['name' => $permission]);
-        }
-
-        // Assegniamo tutti i permessi all'admin
-        $adminRole->givePermissionTo(Permission::all());
-        
-        // Permessi base per client
-        $clientRole->givePermissionTo(['view_dashboard', 'view_accounts', 'make_transfers', 'view_transactions']);
-        
-        // Permessi base per employee
-        $employeeRole->givePermissionTo(['view_dashboard', 'view_accounts', 'view_transactions']);
-
         // Crea l'utente admin se non esiste
         $admin = User::firstOrCreate(
             ['username' => 'admin'],
@@ -55,11 +26,6 @@ class AdminSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
-
-        // Assegna il ruolo admin se non già assegnato
-        if (!$admin->hasRole('admin')) {
-            $admin->assignRole('admin');
-        }
 
         // Crea la security question se non esiste
         SecurityQuestion::firstOrCreate(
@@ -105,9 +71,5 @@ class AdminSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
-
-        if (!$employee->hasRole('employee')) {
-            $employee->assignRole('employee');
-        }
     }
 }

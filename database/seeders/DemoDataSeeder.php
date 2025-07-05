@@ -8,8 +8,6 @@ use App\Models\Account;
 use App\Models\Transaction;
 use App\Services\TransactionService;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 
 class DemoDataSeeder extends Seeder
 {
@@ -63,10 +61,6 @@ class DemoDataSeeder extends Seeder
                     'email_verified_at' => now(),
                 ]
             );
-
-            if (!$admin->hasRole('admin')) {
-                $admin->assignRole('admin');
-            }
         }
 
         // ========== DIPENDENTI ==========
@@ -128,10 +122,6 @@ class DemoDataSeeder extends Seeder
                     'email_verified_at' => now(),
                 ]
             );
-
-            if (!$employee->hasRole('employee')) {
-                $employee->assignRole('employee');
-            }
         }
 
         // ========== CLIENTI ==========
@@ -291,11 +281,6 @@ class DemoDataSeeder extends Seeder
                     'email_verified_at' => now(),
                 ]
             );
-
-            // Assegna il ruolo
-            if (!$user->hasRole('client')) {
-                $user->assignRole('client');
-            }
 
             // Crea il conto se non esiste
             if (!$user->account) {

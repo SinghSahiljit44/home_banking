@@ -5,7 +5,6 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Fortify\Contracts\LoginResponse;
 use App\Http\Responses\LoginResponse as CustomLoginResponse;
-use App\Services\OtpService;
 use App\Services\TransactionService;
 
 class AppServiceProvider extends ServiceProvider
