@@ -14,9 +14,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Registra il custom login response
-        $this->app->singleton(LoginResponse::class, CustomLoginResponse::class);
-        
         $this->app->singleton(TransactionService::class, function ($app) {
             return new TransactionService();
         });
