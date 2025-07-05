@@ -157,15 +157,6 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/cancel', [TransferController::class, 'cancel'])->name('cancel');
         });
 
-        // BENEFICIARI
-        Route::prefix('beneficiaries')->name('beneficiaries.')->group(function () {
-            Route::get('/', [App\Http\Controllers\Client\BeneficiaryController::class, 'index'])->name('index');
-            Route::post('/', [App\Http\Controllers\Client\BeneficiaryController::class, 'store'])->name('store');
-            Route::put('/{beneficiary}', [App\Http\Controllers\Client\BeneficiaryController::class, 'update'])->name('update');
-            Route::post('/{beneficiary}/toggle-favorite', [App\Http\Controllers\Client\BeneficiaryController::class, 'toggleFavorite'])->name('toggle-favorite');
-            Route::delete('/{beneficiary}', [App\Http\Controllers\Client\BeneficiaryController::class, 'destroy'])->name('destroy');
-        });
-
         // DOMANDE DI SICUREZZA
         Route::prefix('security')->name('security.')->group(function () {
             Route::get('/questions', [SecurityQuestionController::class, 'index'])->name('questions');
@@ -297,67 +288,67 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
-        // ========== EMPLOYEE ROUTES ==========
+    // ========== EMPLOYEE ROUTES ==========
+    
+    Route::middleware(['role:employee'])->prefix('employee')->name('employee.')->group(function () {
         
-        Route::middleware(['role:employee'])->prefix('employee')->name('employee.')->group(function () {
+        // DASHBOARD
+        Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/statistics', [EmployeeDashboardController::class, 'statistics'])->name('statistics');
+
+        // PROFILO EMPLOYEE
+        Route::prefix('profile')->name('profile.')->group(function () {
+            Route::get('/', [ProfileController::class, 'show'])->name('show');
+            Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
+            Route::post('/update', [ProfileController::class, 'update'])->name('update');
+            Route::get('/change-password', [ProfileController::class, 'showChangePassword'])->name('change-password');
+            Route::post('/change-password', [ProfileController::class, 'changePassword'])->name('change-password.store');
+        });
+
+        // GESTIONE CLIENTI ASSEGNATI (solo per clienti assegnati)
+        Route::prefix('clients')->name('clients.')->group(function () {
+            Route::get('/', [EmployeeDashboardController::class, 'clients'])->name('index');
+            Route::get('/create', [EmployeeClientController::class, 'create'])->name('create');
+            Route::post('/', [EmployeeClientController::class, 'store'])->name('store');
+            Route::get('/{client}', [EmployeeDashboardController::class, 'showClient'])->name('show');
+            Route::get('/{client}/edit', [EmployeeClientController::class, 'edit'])->name('edit');
+            Route::put('/{client}', [EmployeeClientController::class, 'update'])->name('update');
             
-            // DASHBOARD
-            Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
-            Route::get('/statistics', [EmployeeDashboardController::class, 'statistics'])->name('statistics');
+            // Azioni per clienti ASSEGNATI
+            Route::post('/{client}/reset-password', [EmployeeClientController::class, 'resetPassword'])->name('reset-password');
+            Route::post('/{client}/transfer', [EmployeeClientController::class, 'makeTransfer'])->name('transfer');
+            Route::post('/{client}/create-account', [EmployeeClientController::class, 'createAccount'])->name('create-account');
+            Route::post('/{client}/toggle-status', [EmployeeClientController::class, 'toggleClientStatus'])->name('employee.clients.toggle-status');
+            Route::post('/{client}/remove', [EmployeeClientController::class, 'removeClient'])->name('employee.clients.remove');
 
-            // PROFILO EMPLOYEE
-            Route::prefix('profile')->name('profile.')->group(function () {
-                Route::get('/', [ProfileController::class, 'show'])->name('show');
-                Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
-                Route::post('/update', [ProfileController::class, 'update'])->name('update');
-                Route::get('/change-password', [ProfileController::class, 'showChangePassword'])->name('change-password');
-                Route::post('/change-password', [ProfileController::class, 'changePassword'])->name('change-password.store');
-            });
+            // DEPOSITI solo per clienti assegnati (tramite gestione clienti)
+            Route::post('/{client}/deposit', [EmployeeClientController::class, 'deposit'])->name('deposit');
+        });
 
-            // GESTIONE CLIENTI ASSEGNATI (solo per clienti assegnati)
-            Route::prefix('clients')->name('clients.')->group(function () {
-                Route::get('/', [EmployeeDashboardController::class, 'clients'])->name('index');
-                Route::get('/create', [EmployeeClientController::class, 'create'])->name('create');
-                Route::post('/', [EmployeeClientController::class, 'store'])->name('store');
-                Route::get('/{client}', [EmployeeDashboardController::class, 'showClient'])->name('show');
-                Route::get('/{client}/edit', [EmployeeClientController::class, 'edit'])->name('edit');
-                Route::put('/{client}', [EmployeeClientController::class, 'update'])->name('update');
-                
-                // Azioni per clienti ASSEGNATI
-                Route::post('/{client}/reset-password', [EmployeeClientController::class, 'resetPassword'])->name('reset-password');
-                Route::post('/{client}/transfer', [EmployeeClientController::class, 'makeTransfer'])->name('transfer');
-                Route::post('/{client}/create-account', [EmployeeClientController::class, 'createAccount'])->name('create-account');
-                Route::post('/{client}/toggle-status', [EmployeeClientController::class, 'toggleClientStatus'])->name('employee.clients.toggle-status');
-                Route::post('/{client}/remove', [EmployeeClientController::class, 'removeClient'])->name('employee.clients.remove');
+        // DEPOSITI UNIVERSALI (tutti i clienti) - IMPLEMENTAZIONE COMPLETA
+        Route::prefix('universal')->name('universal.')->group(function () {
+            Route::get('/clients', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'showAllClients'])->name('clients');
+            Route::post('/clients/{client}/deposit', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'depositToAnyClient'])->name('deposit');
+            Route::get('/clients/{client}/detail', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'showClientForDeposit'])->name('client-detail');
+            Route::get('/search-clients', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'searchClients'])->name('search-clients');
+        });
 
-                // DEPOSITI solo per clienti assegnati (tramite gestione clienti)
-                Route::post('/{client}/deposit', [EmployeeClientController::class, 'deposit'])->name('deposit');
-            });
+        // TRANSAZIONI CLIENTI ASSEGNATI (solo transazioni dei clienti assegnati)
+        Route::prefix('transactions')->name('transactions.')->group(function () {
+            Route::get('/', [EmployeeDashboardController::class, 'transactions'])->name('index');
+            Route::get('/details/{id}', [EmployeeDashboardController::class, 'showTransactionDetails'])->name('details');
+            Route::get('/show/{id}', [EmployeeDashboardController::class, 'showTransactionDetails'])->name('show');
+        });
 
-            // DEPOSITI UNIVERSALI (tutti i clienti) - IMPLEMENTAZIONE COMPLETA
-            Route::prefix('universal')->name('universal.')->group(function () {
-                Route::get('/clients', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'showAllClients'])->name('clients');
-                Route::post('/clients/{client}/deposit', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'depositToAnyClient'])->name('deposit');
-                Route::get('/clients/{client}/detail', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'showClientForDeposit'])->name('client-detail');
-                Route::get('/search-clients', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'searchClients'])->name('search-clients');
-            });
-
-            // TRANSAZIONI CLIENTI ASSEGNATI (solo transazioni dei clienti assegnati)
-            Route::prefix('transactions')->name('transactions.')->group(function () {
-                Route::get('/', [EmployeeDashboardController::class, 'transactions'])->name('index');
-                Route::get('/details/{id}', [EmployeeDashboardController::class, 'showTransactionDetails'])->name('details');
-                Route::get('/show/{id}', [EmployeeDashboardController::class, 'showTransactionDetails'])->name('show');
-            });
-
-            // RECUPERO CREDENZIALI CLIENTI ASSEGNATI (solo per clienti assegnati)
-            Route::prefix('password-recovery')->name('password-recovery.')->group(function () {
-                Route::get('/', [PasswordRecoveryController::class, 'index'])->name('index');
-                Route::post('/generate', [PasswordRecoveryController::class, 'generatePassword'])->name('generate');
-                Route::post('/unlock-account', [PasswordRecoveryController::class, 'unlockAccount'])->name('unlock-account');
-                Route::get('/search-users', [PasswordRecoveryController::class, 'searchUsers'])->name('search-users');
-            });
+        // RECUPERO CREDENZIALI CLIENTI ASSEGNATI (solo per clienti assegnati)
+        Route::prefix('password-recovery')->name('password-recovery.')->group(function () {
+            Route::get('/', [PasswordRecoveryController::class, 'index'])->name('index');
+            Route::post('/generate', [PasswordRecoveryController::class, 'generatePassword'])->name('generate');
+            Route::post('/unlock-account', [PasswordRecoveryController::class, 'unlockAccount'])->name('unlock-account');
+            Route::get('/search-users', [PasswordRecoveryController::class, 'searchUsers'])->name('search-users');
         });
     });
+});
 
 // ========== LOGOUT ==========
 Route::post('/logout', function (Request $request) {
