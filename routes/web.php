@@ -25,46 +25,7 @@ Route::middleware('guest')->group(function () {
     Route::view('/login', 'login');
     Route::view('/login-cliente', 'login-cliente');
     Route::view('/login-lavoratore', 'login-lavoratore');
-
-    // Form di registrazione (opzionale)
-    Route::view('/register', 'register')->name('register.form');
     
-    // Password Reset Routes (se non gestite da Fortify)
-    Route::get('/forgot-password', function () {
-        return view('auth.forgot-password');
-    })->name('password.request');
-    
-    Route::get('/reset-password/{token}', function ($token) {
-        return view('auth.reset-password', ['token' => $token]);
-    })->name('password.reset');
-
-    // Gestione registrazione
-    Route::post('/register', function (Request $request) {
-        $request->validate([
-            'first_name' => 'required|string|max:50',
-            'last_name' => 'required|string|max:50',
-            'username' => 'required|string|max:50|unique:users',
-            'email' => 'required|string|email|max:100|unique:users',
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        $user = User::create([
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
-            'username' => $request->username,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'password' => Hash::make($request->password),
-            'role' => 'client',
-            'is_active' => false, // Richiede attivazione da admin
-        ]);
-
-        return redirect('/login')->with('success', 'Registrazione completata! Il tuo account sarà attivato dall\'amministratore.');
-    })->name('register');
-
     // Gestione login cliente
     Route::post('/login-cliente', function (Request $request) {
         $request->validate([
