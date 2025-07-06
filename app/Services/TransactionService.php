@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 class TransactionService
 {
     /**
-     * Effettua un bonifico tra due conti - VERSIONE CORRETTA SENZA DUPLICATI
+     * Effettua un bonifico tra due conti
      */
     public function processBonifico(
         Account $fromAccount, 

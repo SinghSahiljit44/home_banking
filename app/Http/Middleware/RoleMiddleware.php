@@ -18,6 +18,7 @@ class RoleMiddleware
             return redirect('/login');
         }
 
+        //Recupera l'utente dalla tabella users oppure dalla cache 
         $user = Auth::user();
 
         // Verifica se l'utente è attivo
