@@ -8,15 +8,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Fortify\TwoFactorAuthenticatable;
-use Laravel\Jetstream\HasProfilePhoto;
 
 class User extends Authenticatable
 {
     use HasFactory;
-    use HasProfilePhoto;
     use Notifiable;
-    use TwoFactorAuthenticatable;
 
     protected $fillable = [
         'username',
@@ -33,8 +29,6 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'two_factor_recovery_codes',
-        'two_factor_secret',
     ];
 
     protected function casts(): array
@@ -56,13 +50,6 @@ class User extends Authenticatable
     {
         return $this->hasOne(SecurityQuestion::class);
     }
-
-    public function beneficiaries(): HasMany
-    {
-        return $this->hasMany(Beneficiary::class);
-    }
-
-    // RELAZIONI PER EMPLOYEE-CLIENT ASSIGNMENTS - CORRETTE
 
     /**
      * Clienti assegnati a questo employee (relazione many-to-many) - FIXED
@@ -476,14 +463,6 @@ class User extends Authenticatable
     public function getNameAttribute(): ?string
     {
         return $this->full_name ?? $this->username ?? 'User';
-    }
-
-    /**
-     * Get profile photo URL (compatibility with Jetstream navigation)
-     */
-    public function getProfilePhotoUrlAttribute(): string
-    {
-        return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
     }
 
     /**
