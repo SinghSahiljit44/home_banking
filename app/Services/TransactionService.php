@@ -87,16 +87,13 @@ class TransactionService
         // Genera codice di riferimento univoco
         $referenceCode = $this->generateUniqueReferenceCode();
 
-        // Pulisci la descrizione da caratteri problematici
         $cleanDescription = $this->cleanDescription($description);
 
-        // CAMBIAMENTO PRINCIPALE: Crea una SOLA transazione per il bonifico interno
-        // La transazione viene vista dal punto di vista del mittente
         $transaction = Transaction::create([
             'from_account_id' => $fromAccount->id,
             'to_account_id' => $toAccount->id,
             'amount' => $amount,
-            'type' => 'transfer_out', // Dal punto di vista del mittente
+            'type' => 'transfer_out', 
             'description' => $cleanDescription,
             'reference_code' => $referenceCode,
             'status' => 'completed'
