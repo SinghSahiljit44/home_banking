@@ -86,12 +86,16 @@ class EmployeeClientController extends Controller
 
             // Crea il conto se richiesto
             if ($request->boolean('create_account')) {
-                $account = $this->createAccountForUser($client, $request->initial_balance ?? 0);
+                $initialBalance = floatval($request->initial_balance ?? 0);
                 
-                if ($request->initial_balance > 0) {
+                // PRIMA crea il conto con saldo 0
+                $account = $this->createAccountForUser($client, 0);
+                
+                // POI se c'è un saldo iniziale, crea UNA SOLA transazione di deposito
+                if ($initialBalance > 0) {
                     $this->transactionService->createDeposit(
                         $account, 
-                        $request->initial_balance, 
+                        $initialBalance, 
                         "Deposito iniziale - Creato da {$employee->full_name}"
                     );
                 }

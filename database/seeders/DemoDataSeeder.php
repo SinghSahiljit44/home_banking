@@ -282,11 +282,12 @@ class DemoDataSeeder extends Seeder
                 ]
             );
 
-            // Crea il conto se non esiste
+            // CORREZIONE: Crea il conto se non esiste
             if (!$user->account) {
-                $account = $this->createAccountForUser($user, $clientData['initial_balance']);
+                // PRIMA crea il conto con saldo 0 (non con il saldo iniziale)
+                $account = $this->createAccountForUser($user, 0);
                 
-                // Deposito iniziale
+                // POI se c'è un saldo iniziale, crea UNA SOLA transazione di deposito
                 if ($clientData['initial_balance'] > 0) {
                     $transactionService->createDeposit(
                         $account, 
@@ -337,17 +338,19 @@ class DemoDataSeeder extends Seeder
         // Genera IBAN italiano
         $bankCode = '05428'; // Codice banca fittizio
         $branchCode = '11101'; // Codice filiale
-        $accountCode = str_pad(random_int(0, 999999999999), 13, '0', STR_PAD_LEFT);
+        $accountCode = str_pad(random_int(0, 999999999999), 12, '0', STR_PAD_LEFT);
         
         $bban = $bankCode . $branchCode . $accountCode;
         $checkDigits = $this->calculateIbanCheckDigits('IT', $bban);
         $iban = 'IT' . $checkDigits . $bban;
 
+        // IMPORTANTE: Crea il conto SOLO con il saldo specificato
+        // Quando chiamato con 0, il saldo sarà 0
         return Account::create([
             'user_id' => $user->id,
             'account_number' => $accountNumber,
             'iban' => $iban,
-            'balance' => $initialBalance,
+            'balance' => $initialBalance, // Dovrebbe sempre essere 0 quando chiamato dal ciclo clienti
             'is_active' => true,
         ]);
     }
