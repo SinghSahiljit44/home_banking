@@ -302,7 +302,7 @@
             <div class="d-flex justify-content-between align-items-center">
                 <h5><i class="fas fa-list me-2"></i>Utenti Disponibili ({{ $users->count() }})</h5>
                 <small class="text-muted">
-                    {{ Auth::user()->isAdmin() ? 'Tutti gli utenti' : 'Solo clienti assegnati' }}
+                    {{ Auth::user()->isAdmin() ? 'Dipendenti e clienti' : 'Solo clienti assegnati' }}
                 </small>
             </div>
         </div>
@@ -339,7 +339,7 @@
                                 <td>{{ $user->email }}</td>
                                 @if(Auth::user()->isAdmin())
                                     <td>
-                                        <span class="badge bg-{{ $user->role === 'admin' ? 'danger' : ($user->role === 'employee' ? 'warning' : 'success') }}">
+                                        <span class="badge bg-{{ $user->role === 'employee' ? 'warning' : 'success' }}">
                                             {{ ucfirst($user->role) }}
                                         </span>
                                     </td>

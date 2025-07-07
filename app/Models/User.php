@@ -210,7 +210,9 @@ class User extends Authenticatable
     public function canRemoveUser(User $targetUser): bool
     {
         if ($this->isAdmin()) {
-            // Admin può rimuovere tutti tranne altri admin e se stesso
+            // Admin può rimuovere tutti tranne:
+            // 1. Altri admin (protezione totale)
+            // 2. Se stesso
             return !$targetUser->isAdmin() && $this->id !== $targetUser->id;
         }
 
@@ -228,11 +230,13 @@ class User extends Authenticatable
     public function canManageUserCredentials(User $targetUser): bool
     {
         if ($this->isAdmin()) {
-            // Admin può gestire tutti tranne altri admin 
+            // Admin può gestire credenziali di tutti TRANNE:
+            // 1. Altri admin (completamente)
+            // 2. Se stesso (solo le proprie credenziali tramite profilo)
             if ($targetUser->isAdmin()) {
                 return $this->id === $targetUser->id; // Solo le proprie credenziali di admin
             }
-            return true;
+            return true; // Può gestire employee e client
         }
 
         if ($this->isEmployee()) {
@@ -267,7 +271,9 @@ class User extends Authenticatable
     public function canToggleUserStatus(User $targetUser): bool
     {
         if ($this->isAdmin()) {
-            // Admin può gestire tutti tranne altri admin e se stesso
+            // Admin può gestire status di tutti tranne:
+            // 1. Altri admin
+            // 2. Se stesso
             return !$targetUser->isAdmin() && $this->id !== $targetUser->id;
         }
 
@@ -371,26 +377,28 @@ class User extends Authenticatable
     /**
      * Ottieni clienti per cui può recuperare credenziali - METODO SICURO
      */
-    public function getClientsForCredentialRecovery()
+   public function getClientsForCredentialRecovery()
     {
         if ($this->isAdmin()) {
-            return User::where('role', '!=', 'admin')
-                      ->where('id', '!=', $this->id)
-                      ->where('is_active', true)
-                      ->get();
+            // Admin può recuperare credenziali per tutti TRANNE:
+            // 1. Se stesso
+            // 2. Altri admin
+            return User::where('id', '!=', $this->id)
+                    ->where('role', '!=', 'admin') // ESCLUDE ALTRI ADMIN
+                    ->where('is_active', true)
+                    ->get();
         }
 
         if ($this->isEmployee()) {
             // Employee può recuperare credenziali SOLO per clienti assegnati
-            // Usa query diretta per evitare ambiguità
             $clientIds = EmployeeClientAssignment::where('employee_id', $this->id)
                                                 ->where('is_active', true)
                                                 ->pluck('client_id');
             
             return User::whereIn('id', $clientIds)
-                      ->where('role', 'client')
-                      ->where('is_active', true)
-                      ->get();
+                    ->where('role', 'client')
+                    ->where('is_active', true)
+                    ->get();
         }
 
         return collect();

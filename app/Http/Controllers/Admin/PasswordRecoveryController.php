@@ -25,14 +25,16 @@ class PasswordRecoveryController extends Controller
     {
         $currentUser = Auth::user();
         
-        // Lista utenti disponibili in base al ruolo - AGGIORNATO CON QUERY SICURA
+        // Lista utenti disponibili in base al ruolo
         if ($currentUser->isAdmin()) {
-            // Admin vede tutti gli utenti tranne se stesso
+            // Admin vede tutti gli utenti tranne:
+            // 1. Se stesso
+            // 2. Altri admin
             $query = User::where('id', '!=', $currentUser->id)
+                        ->where('role', '!=', 'admin') // ESCLUDE ALTRI ADMIN
                         ->where('is_active', true);
         } else {
-            // Employee vede solo i suoi clienti assegnati - CORREZIONE PRINCIPALE
-            // Usa query diretta invece della relazione per evitare ambiguità
+            // Employee vede solo i suoi clienti assegnati
             $clientIds = EmployeeClientAssignment::where('employee_id', $currentUser->id)
                                                 ->where('is_active', true)
                                                 ->pluck('client_id');
@@ -47,24 +49,35 @@ class PasswordRecoveryController extends Controller
             $search = $request->get('search');
             $query->where(function($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('username', 'like', "%{$search}%");
+                ->orWhere('last_name', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%")
+                ->orWhere('username', 'like', "%{$search}%");
             });
         }
 
         if ($request->filled('role') && $currentUser->isAdmin()) {
-            $query->where('role', $request->get('role'));
+            $role = $request->get('role');
+            if ($role !== 'admin') { // Assicurati che non possa filtrare per admin
+                $query->where('role', $role);
+            }
         }
 
         $users = $query->orderBy('role')->orderBy('last_name')->get();
 
-        // Statistiche
-        $stats = [
-            'total_available' => $users->count(),
-            'clients_count' => $users->where('role', 'client')->count(),
-            'employees_count' => $users->where('role', 'employee')->count(),
-        ];
+        // Statistiche (escludendo admin dal conteggio per admin)
+        if ($currentUser->isAdmin()) {
+            $stats = [
+                'total_available' => $users->count(),
+                'clients_count' => $users->where('role', 'client')->count(),
+                'employees_count' => 0,
+            ];
+        } else {
+            $stats = [
+                'total_available' => $users->count(),
+                'clients_count' => $users->where('role', 'client')->count(),
+                'employees_count' => 0, // Employee non gestisce altri employee
+            ];
+        }
 
         return view('admin.password-recovery.index', compact('users', 'stats'));
     }
@@ -228,12 +241,22 @@ class PasswordRecoveryController extends Controller
      */
     private function canResetUserPassword(User $currentUser, User $targetUser): bool
     {
-        // Admin può resettare password di tutti tranne se stesso
+        // Admin può resettare password di tutti tranne:
+        // 1. Se stesso
+        // 2. Altri admin
         if ($currentUser->isAdmin()) {
-            return $currentUser->id !== $targetUser->id;
+            if ($currentUser->id === $targetUser->id) {
+                return false; // Non può resettare la propria password
+            }
+            
+            if ($targetUser->isAdmin()) {
+                return false; // Non può resettare password di altri admin
+            }
+            
+            return true; // Può resettare password di employee e client
         }
 
-        // Employee può resettare solo password dei clienti assegnati - CORREZIONE
+        // Employee può resettare solo password dei clienti assegnati
         if ($currentUser->isEmployee()) {
             return $targetUser->isClient() && $currentUser->canManageClient($targetUser);
         }
@@ -247,12 +270,22 @@ class PasswordRecoveryController extends Controller
      */
     private function canManageUser(User $currentUser, User $targetUser): bool
     {
-        // Admin può gestire tutti tranne se stesso
+        // Admin può gestire tutti tranne:
+        // 1. Se stesso  
+        // 2. Altri admin
         if ($currentUser->isAdmin()) {
-            return $currentUser->id !== $targetUser->id;
+            if ($currentUser->id === $targetUser->id) {
+                return false; // Non può gestire se stesso
+            }
+            
+            if ($targetUser->isAdmin()) {
+                return false; // Non può gestire altri admin
+            }
+            
+            return true; // Può gestire employee e client
         }
 
-        // Employee può gestire solo i clienti assegnati - CORREZIONE
+        // Employee può gestire solo i clienti assegnati
         if ($currentUser->isEmployee()) {
             return $targetUser->isClient() && $currentUser->canManageClient($targetUser);
         }
