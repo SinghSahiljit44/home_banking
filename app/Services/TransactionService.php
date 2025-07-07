@@ -235,7 +235,8 @@ class TransactionService
         if (!$account->hasSufficientBalance($amount)) {
             return [
                 'success' => false,
-                'message' => 'Saldo insufficiente.'
+                'message' => 'Saldo insufficiente.',
+                'transaction' => null
             ];
         }
 
@@ -268,7 +269,8 @@ class TransactionService
 
             return [
                 'success' => true,
-                'transaction' => $transaction
+                'transaction' => $transaction,
+                'message' => 'Prelievo completato con successo.'
             ];
 
         } catch (\Exception $e) {
@@ -282,7 +284,8 @@ class TransactionService
             
             return [
                 'success' => false,
-                'message' => 'Errore durante il prelievo.'
+                'message' => 'Errore durante il prelievo.',
+                'transaction' => null
             ];
         }
     }

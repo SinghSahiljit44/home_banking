@@ -60,8 +60,8 @@
             <div class="card bg-transparent border-success h-100">
                 <div class="card-body text-center">
                     <i class="fas fa-coins fa-3x text-success mb-3"></i>
-                    <h5>Depositi</h5>
-                    <p class="small text-muted">Depositi per tutti i clienti</p>
+                    <h5>Operazioni Universali</h5>
+                    <p class="small text-muted">Depositi e prelievi per tutti i clienti</p>
                     <a href="{{ route('employee.universal.clients') }}" class="btn btn-success">
                         Accedi
                     </a>

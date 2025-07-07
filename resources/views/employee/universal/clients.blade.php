@@ -7,7 +7,7 @@
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-coins me-2"></i>Depositi - Tutti i Clienti</h2>
+                <h2><i class="fas fa-coins me-2"></i>Operazioni - Tutti i Clienti</h2>
                 <a href="{{ route('dashboard.employee') }}" class="btn btn-outline-light">
                     <i class="fas fa-arrow-left me-1"></i>Dashboard Employee
                 </a>
@@ -111,7 +111,7 @@
             <div class="d-flex justify-content-between align-items-center">
                 <h5><i class="fas fa-list me-2"></i>Clienti ({{ $clients->total() }})</h5>
                 <small class="text-muted">
-                    Puoi effettuare depositi per tutti i clienti
+                    Puoi effettuare depositi e prelievi per tutti i clienti
                 </small>
             </div>
         </div>
@@ -164,36 +164,22 @@
                             
                             <div class="col-md-3">
                                 @if($client->account && $client->account->is_active && $client->is_active)
-                                    <!-- Form Deposito Rapido -->
-                                    <form method="POST" action="{{ route('employee.universal.deposit', $client) }}" class="d-inline">
-                                        @csrf
-                                        <div class="input-group input-group-sm mb-2">
-                                            <span class="input-group-text">€</span>
-                                            <input type="number" 
-                                                   name="amount" 
-                                                   class="form-control form-control-sm" 
-                                                   placeholder="Importo" 
-                                                   step="0.01" 
-                                                   min="0.01" 
-                                                   max="10000" 
-                                                   required>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <button class="btn btn-info btn-sm w-100 mt-1" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#depositModal{{ $client->id }}">
+                                                <i class="fas fa-cog me-1"></i>Deposito
+                                            </button>
                                         </div>
-                                        <input type="hidden" 
-                                               name="description" 
-                                               value="Deposito amministrativo">
-                                        <button type="submit" 
-                                                class="btn btn-success btn-sm w-100"
-                                                onclick="return confirm('Confermi il deposito per {{ $client->full_name }}?')">
-                                            <i class="fas fa-plus-circle me-1"></i>Deposita
-                                        </button>
-                                    </form>
-                                    
-                                    <!-- Deposito Personalizzato -->
-                                    <button class="btn btn-info btn-sm w-100 mt-1" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#depositModal{{ $client->id }}">
-                                        <i class="fas fa-cog me-1"></i>Deposito Dettagliato
-                                    </button>
+                                        <div class="col-6">
+                                            <button class="btn btn-warning btn-sm w-100 mt-1" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#withdrawalModal{{ $client->id }}">
+                                                <i class="fas fa-cog me-1"></i>Prelievo
+                                            </button>
+                                        </div>
+                                    </div>
                                 @else
                                     <div class="text-center">
                                         @if(!$client->account)
@@ -270,6 +256,66 @@
                         </div>
                     </div>
                 </div>
+                <!-- Modal Prelievo Dettagliato NUOVO -->
+                <div class="modal fade" id="withdrawalModal{{ $client->id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content bg-dark">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Prelievo per {{ $client->full_name }}</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST" action="{{ route('employee.universal.withdrawal', $client) }}">
+                                @csrf
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Cliente:</label>
+                                        <p class="form-control-plaintext">{{ $client->full_name }} ({{ $client->username }})</p>
+                                    </div>
+                                    
+                                    @if($client->account)
+                                        <div class="mb-3">
+                                            <label class="form-label">Conto:</label>
+                                            <p class="form-control-plaintext font-monospace">{{ $client->account->account_number }}</p>
+                                            <p class="text-warning">Saldo disponibile: €{{ number_format($client->account->balance, 2, ',', '.') }}</p>
+                                        </div>
+                                    @endif
+                                    
+                                    <div class="mb-3">
+                                        <label for="withdrawal_amount{{ $client->id }}" class="form-label">Importo (€) *</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">€</span>
+                                            <input type="number" 
+                                                class="form-control" 
+                                                id="withdrawal_amount{{ $client->id }}" 
+                                                name="amount" 
+                                                step="0.01" 
+                                                min="0.01" 
+                                                max="{{ $client->account ? $client->account->balance : 0 }}" 
+                                                required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="withdrawal_description{{ $client->id }}" class="form-label">Descrizione *</label>
+                                        <input type="text" 
+                                            class="form-control" 
+                                            id="withdrawal_description{{ $client->id }}" 
+                                            name="description" 
+                                            value="Prelievo amministrativo" 
+                                            maxlength="255" 
+                                            required>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fas fa-minus-circle me-1"></i>Effettua Prelievo
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>     
             @empty
                 <div class="text-center py-5">
                     <i class="fas fa-users fa-3x text-muted mb-3"></i>

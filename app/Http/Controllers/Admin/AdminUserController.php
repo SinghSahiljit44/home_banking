@@ -552,4 +552,91 @@ class AdminUserController extends Controller
         // Mescola i caratteri
         return str_shuffle($password);
     }
+
+     /**
+     * Preleva denaro dal conto dell'utente (NUOVO)
+     */
+    public function withdrawal(Request $request, User $user)
+    {
+        $validator = Validator::make($request->all(), [
+            'amount' => 'required|numeric|min:0.01|max:100000',
+            'description' => 'required|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        if (!$user->isClient()) {
+            return back()->withErrors(['general' => 'Solo i clienti possono effettuare prelievi.']);
+        }
+
+        if (!$user->account || !$user->account->is_active) {
+            return back()->withErrors(['general' => 'Conto non disponibile per il prelievo.']);
+        }
+
+        if (!$user->account->hasSufficientBalance($request->amount)) {
+            return back()->withErrors(['amount' => 'Saldo insufficiente per il prelievo richiesto.']);
+        }
+
+        try {
+            $description = $request->description . " - Operazione Admin: " . Auth::user()->full_name;
+            
+            // Salva il saldo prima della transazione
+            $balanceBeforeTransaction = $user->account->balance;
+            
+            $result = $this->transactionService->createWithdrawal(
+                $user->account,
+                $request->amount,
+                $description
+            );
+
+            // Log dell'operazione
+            \Log::info('Admin created withdrawal for client:', [
+                'admin_id' => Auth::id(),
+                'admin_name' => Auth::user()->full_name,
+                'client_id' => $user->id,
+                'client_name' => $user->full_name,
+                'amount' => $request->amount,
+                'description' => $description,
+                'transaction_id' => $result['transaction']->id ?? 'N/A',
+            ]);
+
+            if ($result['success']) {
+                return view('admin.transactions.withdrawal-success', [
+                    'client' => $user,
+                    'transaction' => $result['transaction'],
+                    'amount' => $request->amount,
+                    'description' => $description,
+                    'new_balance' => $user->account->fresh()->balance,
+                    'previous_balance' => $balanceBeforeTransaction
+                ]);
+            } else {
+                return back()->withErrors(['general' => $result['message']]);
+            }
+
+        } catch (\Exception $e) {
+            \Log::error('Admin withdrawal failed:', [
+                'admin_id' => Auth::id(),
+                'client_id' => $user->id,
+                'amount' => $request->amount,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['general' => 'Errore durante il prelievo.']);
+        }
+    }
+
+    /**
+     * Mostra form per creare prelievo per cliente (NUOVO)
+     */
+    public function showCreateWithdrawalForm(User $client)
+    {
+        if (!$client->isClient() || !$client->account) {
+            return redirect()->route('admin.users.show', $client)
+                ->withErrors(['error' => 'Cliente non ha un conto disponibile.']);
+        }
+
+        return view('admin.transactions.create-withdrawal', compact('client'));
+    }
 }

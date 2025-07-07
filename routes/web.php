@@ -220,6 +220,8 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{user}/deposit', [AdminUserController::class, 'deposit'])->name('deposit');
             Route::post('/{user}/toggle-status', [AdminUserController::class, 'toggleUserStatus'])->name('toggle-status');
             Route::post('/{user}/remove', [AdminUserController::class, 'removeUser'])->name('remove');
+            Route::post('/{user}/withdrawal', [AdminUserController::class, 'withdrawal'])->name('withdrawal');
+            Route::get('/{user}/withdrawal-form', [AdminUserController::class, 'showCreateWithdrawalForm'])->name('withdrawal-form');
         });
 
         // GESTIONE ASSOCIAZIONI EMPLOYEE-CLIENT
@@ -323,12 +325,14 @@ Route::middleware(['auth'])->group(function () {
 
             // DEPOSITI solo per clienti assegnati (tramite gestione clienti)
             Route::post('/{client}/deposit', [EmployeeClientController::class, 'deposit'])->name('deposit');
+            Route::post('/{client}/withdrawal', [EmployeeClientController::class, 'withdrawal'])->name('withdrawal');
         });
 
         // DEPOSITI UNIVERSALI (tutti i clienti) - IMPLEMENTAZIONE COMPLETA
         Route::prefix('universal')->name('universal.')->group(function () {
             Route::get('/clients', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'showAllClients'])->name('clients');
             Route::post('/clients/{client}/deposit', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'depositToAnyClient'])->name('deposit');
+            Route::post('/clients/{client}/withdrawal', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'withdrawalFromAnyClient'])->name('withdrawal');
             Route::get('/clients/{client}/detail', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'showClientForDeposit'])->name('client-detail');
             Route::get('/search-clients', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'searchClients'])->name('search-clients');
         });

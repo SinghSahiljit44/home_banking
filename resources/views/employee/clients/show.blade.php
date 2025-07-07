@@ -207,6 +207,10 @@
                                 <i class="fas fa-plus-circle me-2"></i>Deposita Fondi
                             </button>
                             
+                            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#withdrawalModal">
+                                <i class="fas fa-minus-circle me-2"></i>Preleva Fondi
+                            </button>
+
                             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#transferModal">
                                 <i class="fas fa-paper-plane me-2"></i>Crea Bonifico
                             </button>
@@ -252,6 +256,37 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
                     <button type="submit" class="btn btn-success">Deposita</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="withdrawalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Preleva Fondi</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ route('employee.clients.withdrawal', $client) }}">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="withdrawal_amount" class="form-label">Importo (€)</label>
+                        <input type="number" class="form-control" id="withdrawal_amount" name="amount" step="0.01" min="0.01" max="{{ $client->account->balance }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="withdrawal_description" class="form-label">Descrizione</label>
+                        <input type="text" class="form-control" id="withdrawal_description" name="description" value="Prelievo per {{ $client->full_name }}" required>
+                    </div>
+                    <div class="alert alert-warning">
+                        <small>Saldo disponibile: €{{ number_format($client->account->balance, 2, ',', '.') }}</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-danger">Preleva</button>
                 </div>
             </form>
         </div>

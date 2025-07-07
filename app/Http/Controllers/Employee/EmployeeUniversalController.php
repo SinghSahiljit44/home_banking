@@ -201,4 +201,68 @@ class EmployeeUniversalController extends Controller
             ];
         }));
     }
+
+    public function withdrawalFromAnyClient(Request $request, User $client)
+    {
+        $employee = Auth::user();
+
+        // Verifica che sia un cliente valido
+        if (!$client->isClient()) {
+            return back()->withErrors(['general' => 'L\'utente selezionato non è un cliente.']);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'amount' => 'required|numeric|min:0.01|max:100000',
+            'description' => 'required|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        if (!$client->account || !$client->account->is_active) {
+            return back()->withErrors(['general' => 'Conto del cliente non disponibile per il prelievo.']);
+        }
+
+        if (!$client->account->hasSufficientBalance($request->amount)) {
+            return back()->withErrors(['amount' => 'Saldo insufficiente per il prelievo richiesto.']);
+        }
+
+        try {
+            $description = $request->description . " - Operatore: {$employee->full_name}";
+            
+            $result = $this->transactionService->createWithdrawal(
+                $client->account,
+                $request->amount,
+                $description
+            );
+
+            // Log dell'operazione
+            \Log::info('Employee universal withdrawal:', [
+                'employee_id' => $employee->id,
+                'employee_name' => $employee->full_name,
+                'client_id' => $client->id,
+                'client_name' => $client->full_name,
+                'amount' => $request->amount,
+                'description' => $description,
+                'transaction_id' => $result['transaction']->id ?? 'N/A',
+            ]);
+
+            if ($result['success']) {
+                return back()->with('success', "Prelievo di €{$request->amount} effettuato con successo per {$client->full_name}.");
+            } else {
+                return back()->withErrors(['general' => $result['message']]);
+            }
+
+        } catch (\Exception $e) {
+            \Log::error('Employee universal withdrawal failed:', [
+                'employee_id' => $employee->id,
+                'client_id' => $client->id,
+                'amount' => $request->amount,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['general' => 'Errore durante il prelievo.']);
+        }
+    }
 }

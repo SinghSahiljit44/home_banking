@@ -162,6 +162,10 @@
                             <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#depositModal">
                                 <i class="fas fa-plus-circle me-2"></i>Deposita Fondi
                             </button>
+
+                            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#withdrawalModal">
+                                <i class="fas fa-minus-circle me-2"></i>Preleva Fondi
+                            </button>
                             
                             @if($user->account->is_active)
                                 <a href="{{ route('admin.transactions.create-transfer-form', $user) }}" class="btn btn-primary">
@@ -330,6 +334,46 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
                     <button type="submit" class="btn btn-success">
                         <i class="fas fa-plus-circle me-1"></i>Deposita
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+
+<!-- Modal Prelievo -->
+@if($user->account && $user->isClient())
+<div class="modal fade" id="withdrawalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Preleva Fondi per {{ $user->full_name }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ route('admin.users.withdrawal', $user) }}">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="withdrawal_amount" class="form-label">Importo (€) *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">€</span>
+                            <input type="number" class="form-control" id="withdrawal_amount" name="amount" step="0.01" min="0.01" max="{{ $user->account->balance }}" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="withdrawal_description" class="form-label">Descrizione *</label>
+                        <input type="text" class="form-control" id="withdrawal_description" name="description" value="Prelievo amministrativo" required maxlength="255">
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <small>Saldo disponibile: €{{ number_format($user->account->balance, 2, ',', '.') }}</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-minus-circle me-1"></i>Preleva
                     </button>
                 </div>
             </form>
