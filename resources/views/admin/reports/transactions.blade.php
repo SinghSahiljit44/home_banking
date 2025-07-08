@@ -78,9 +78,6 @@
                         <a href="{{ route('admin.reports.transactions') }}" class="btn btn-secondary btn-sm">
                             <i class="fas fa-times me-1"></i>Reset
                         </a>
-                        <button type="submit" name="export" value="1" class="btn btn-success btn-sm">
-                            <i class="fas fa-download me-1"></i>Esporta Filtrati
-                        </button>
                     </div>
                 </div>
             </form>

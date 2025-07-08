@@ -209,13 +209,13 @@
                                 <div class="modal-body">
                                     <div class="mb-3">
                                         <label class="form-label">Cliente:</label>
-                                        <p class="form-control-plaintext">{{ $client->full_name }} ({{ $client->username }})</p>
+                                        <p class="form-control-plaintext text-white">{{ $client->full_name }} ({{ $client->username }})</p>
                                     </div>
                                     
                                     @if($client->account)
                                         <div class="mb-3">
                                             <label class="form-label">Conto:</label>
-                                            <p class="form-control-plaintext font-monospace">{{ $client->account->account_number }}</p>
+                                            <p class="form-control-plaintext font-monospace text-white">{{ $client->account->account_number }}</p>
                                             <p class="text-success">Saldo attuale: €{{ number_format($client->account->balance, 2, ',', '.') }}</p>
                                         </div>
                                     @endif
@@ -256,7 +256,7 @@
                         </div>
                     </div>
                 </div>
-                <!-- Modal Prelievo Dettagliato NUOVO -->
+                <!-- Modal Prelievo Dettagliato -->
                 <div class="modal fade" id="withdrawalModal{{ $client->id }}" tabindex="-1">
                     <div class="modal-dialog">
                         <div class="modal-content bg-dark">
@@ -269,13 +269,13 @@
                                 <div class="modal-body">
                                     <div class="mb-3">
                                         <label class="form-label">Cliente:</label>
-                                        <p class="form-control-plaintext">{{ $client->full_name }} ({{ $client->username }})</p>
+                                        <p class="form-control-plaintext text-white">{{ $client->full_name }} ({{ $client->username }})</p>
                                     </div>
                                     
                                     @if($client->account)
                                         <div class="mb-3">
                                             <label class="form-label">Conto:</label>
-                                            <p class="form-control-plaintext font-monospace">{{ $client->account->account_number }}</p>
+                                            <p class="form-control-plaintext font-monospace text-white">{{ $client->account->account_number }}</p>
                                             <p class="text-warning">Saldo disponibile: €{{ number_format($client->account->balance, 2, ',', '.') }}</p>
                                         </div>
                                     @endif
