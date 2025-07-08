@@ -65,11 +65,10 @@ class AdminUserController extends Controller
     }
 
     /**
-     * Registra un nuovo cliente - FIXED
+     * Registra un nuovo cliente 
      */
     public function store(Request $request)
     {
-        // VALIDAZIONE MIGLIORATA
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:50',
             'last_name' => 'required|string|max:50',
@@ -77,7 +76,7 @@ class AdminUserController extends Controller
             'email' => 'required|string|email|max:100|unique:users,email',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
-            'password' => 'nullable|string|min:8', // CAMBIATO: password opzionale
+            'password' => 'nullable|string|min:8', 
             'role' => 'required|in:client,employee',
             'create_account' => 'nullable|boolean',
             'initial_balance' => 'nullable|numeric|min:0|max:1000000',
@@ -93,12 +92,10 @@ class AdminUserController extends Controller
         try {
             \DB::beginTransaction();
 
-            // GENERA PASSWORD AUTOMATICAMENTE SE NON FORNITA
             $password = $request->filled('password') 
                 ? $request->password 
                 : $this->generateSecurePassword(12);
 
-            // Crea l'utente
             $user = User::create([
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
@@ -167,8 +164,7 @@ class AdminUserController extends Controller
     public function show(User $user)
     {
         $user->load(['account', 'securityQuestion']);
-        
-        // Statistiche transazioni se ha un conto
+
         $transactionStats = null;
         if ($user->account) {
             $transactionStats = [
@@ -187,7 +183,7 @@ class AdminUserController extends Controller
      */
     public function edit(User $user)
     {
-        // CONTROLLO: Admin non possono modificare altri admin
+        //Admin non possono modificare altri admin
         $currentUser = Auth::user();
         if ($user->isAdmin() && $currentUser->id !== $user->id) {
             return redirect()->route('admin.users.index')
@@ -198,13 +194,13 @@ class AdminUserController extends Controller
     }
 
     /**
-     * Aggiorna un utente - FIXED
+     * Aggiorna un utente 
      */
     public function update(Request $request, User $user)
     {
         $currentUser = Auth::user();
         
-        // PROTEZIONE: Admin non possono modificare altri admin
+        // Admin non possono modificare altri admin
         if ($user->isAdmin() && $currentUser->id !== $user->id) {
             return redirect()->route('admin.users.index')
                 ->withErrors(['error' => 'Non puoi modificare i dati di altri amministratori.']);
@@ -234,7 +230,7 @@ class AdminUserController extends Controller
                 'address' => $request->address,
             ];
 
-            // PROTEZIONE: Solo admin possono cambiare lo stato di altri utenti NON ADMIN
+            // Solo admin possono cambiare lo stato di altri utenti NON ADMIN
             if ($currentUser->isAdmin() && $currentUser->id !== $user->id && !$user->isAdmin()) {
                 $updateData['is_active'] = $request->boolean('is_active');
             }
@@ -262,13 +258,12 @@ class AdminUserController extends Controller
 
 
     /**
-     * Elimina un utente (soft delete) - FIXED
+     * Elimina un utente 
      */
     public function destroy(User $user)
     {
         $currentUser = Auth::user();
 
-        // CONTROLLI DI SICUREZZA
         if ($user->isAdmin()) {
             return back()->withErrors(['error' => 'Impossibile eliminare un amministratore.']);
         }
@@ -292,19 +287,14 @@ class AdminUserController extends Controller
                 'iban' => $user->account ? $user->account->iban : null,
             ];
 
-            // 1. Elimina tutte le transazioni associate all'account
             if ($user->account) {
-                // Elimina transazioni in entrata
                 $user->account->incomingTransactions()->delete();
                 
-                // Elimina transazioni in uscita
                 $user->account->outgoingTransactions()->delete();
-                
-                // Elimina l'account
+            
                 $user->account->delete();
             }
 
-            // 2. Elimina le assegnazioni employee-client
             if ($user->isEmployee()) {
                 $user->employeeAssignments()->delete();
             }
@@ -313,17 +303,14 @@ class AdminUserController extends Controller
                 $user->clientAssignments()->delete();
             }
 
-            // 4. Elimina le domande di sicurezza
             if ($user->securityQuestion) {
                 $user->securityQuestion->delete();
             }
 
-            // 5. Elimina definitivamente l'utente
             $user->delete();
 
             \DB::commit();
 
-            // Log dell'eliminazione completa
             \Log::warning('User permanently deleted by admin:', [
                 'admin_id' => $currentUser->id,
                 'admin_name' => $currentUser->full_name,
@@ -425,13 +412,13 @@ class AdminUserController extends Controller
     }
 
     /**
-     * Blocca/Sblocca un utente (Admin può gestire tutti gli utenti) - FIXED
+     * Blocca/Sblocca un utente 
      */
     public function toggleUserStatus(User $user)
     {
         $currentUser = Auth::user();
 
-        // PROTEZIONE RINFORZATA: Admin non possono modificare stato di altri admin
+        //Admin non possono modificare stato di altri admin
         if ($user->isAdmin()) {
             return back()->withErrors(['error' => 'Non puoi modificare lo stato di un amministratore.']);
         }
@@ -458,13 +445,12 @@ class AdminUserController extends Controller
     }
     
     /**
-     * Rimuove un utente (Admin può rimuovere tutti tranne admin) - FIXED
+     * Rimuove un utente (Admin può rimuovere tutti tranne admin)
      */
      public function removeUser(User $user)
     {
         $currentUser = Auth::user();
 
-        // PROTEZIONE RINFORZATA: Admin non possono rimuovere altri admin
         if ($user->isAdmin()) {
             return back()->withErrors(['error' => 'Non puoi rimuovere un amministratore.']);
         }
@@ -473,12 +459,11 @@ class AdminUserController extends Controller
             return back()->withErrors(['error' => 'Non puoi rimuovere te stesso.']);
         }
 
-        // Usa la stessa logica del metodo destroy
         return $this->destroy($user);
     }
     
     /**
-     * Metodo privato per creare un conto - INVARIATO
+     * Metodo privato per creare un conto
      */
     private function createAccountForUser(User $user, float $initialBalance = 0): Account
     {
@@ -554,7 +539,7 @@ class AdminUserController extends Controller
     }
 
      /**
-     * Preleva denaro dal conto dell'utente (NUOVO)
+     * Preleva denaro dal conto dell'utente
      */
     public function withdrawal(Request $request, User $user)
     {
@@ -591,7 +576,6 @@ class AdminUserController extends Controller
                 $description
             );
 
-            // Log dell'operazione
             \Log::info('Admin created withdrawal for client:', [
                 'admin_id' => Auth::id(),
                 'admin_name' => Auth::user()->full_name,
@@ -628,7 +612,7 @@ class AdminUserController extends Controller
     }
 
     /**
-     * Mostra form per creare prelievo per cliente (NUOVO)
+     * Mostra form per creare prelievo per cliente 
      */
     public function showCreateWithdrawalForm(User $client)
     {

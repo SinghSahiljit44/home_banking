@@ -20,7 +20,6 @@ class EmployeeUniversalController extends Controller
 
     /**
      * Mostra tutti i clienti per operazioni di deposito
-     * (Employee può fare depositi per TUTTI i clienti secondo il documento)
      */
     public function showAllClients(Request $request)
     {
@@ -47,7 +46,6 @@ class EmployeeUniversalController extends Controller
         } elseif ($status === 'inactive') {
             $query->where('is_active', false);
         } else {
-            // Default: solo clienti attivi
             $query->where('is_active', true);
         }
 
@@ -56,7 +54,6 @@ class EmployeeUniversalController extends Controller
                          ->paginate(20)
                          ->withQueryString();
 
-        // Statistiche
         $stats = [
             'total_clients' => User::where('role', 'client')->count(),
             'active_clients' => User::where('role', 'client')->where('is_active', true)->count(),
@@ -71,7 +68,6 @@ class EmployeeUniversalController extends Controller
 
     /**
      * Deposita denaro sul conto di qualsiasi cliente
-     * (Employee può fare depositi per tutti i clienti)
      */
     public function depositToAnyClient(Request $request, User $client)
     {
@@ -104,7 +100,6 @@ class EmployeeUniversalController extends Controller
                 $description
             );
 
-            // Log dell'operazione
             \Log::info('Employee universal deposit:', [
                 'employee_id' => $employee->id,
                 'employee_name' => $employee->full_name,

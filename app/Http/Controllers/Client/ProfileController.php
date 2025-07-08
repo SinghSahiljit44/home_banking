@@ -12,7 +12,7 @@ use Illuminate\Validation\Rule;
 class ProfileController extends Controller
 {
     /**
-     * Mostra i dati del profilo - UNIVERSALE per tutti i ruoli
+     * Mostra i dati del profilo -
      */
     public function show()
     {
@@ -21,7 +21,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Mostra il form per modificare i dati personali - UNIVERSALE
+     * Mostra il form per modificare i dati personali 
      */
     public function edit()
     {
@@ -30,7 +30,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Aggiorna i dati personali direttamente - UNIVERSALE
+     * Aggiorna i dati personali direttamente
      */
     public function update(Request $request)
     {
@@ -91,7 +91,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Mostra il form per cambiare password - UNIVERSALE
+     * Mostra il form per cambiare password 
      */
     public function showChangePassword()
     {
@@ -99,7 +99,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Cambia la password direttamente - UNIVERSALE
+     * Cambia la password direttamente 
      */
     public function changePassword(Request $request)
     {
@@ -145,7 +145,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Cancella le modifiche in corso (compatibilità)
+     * Cancella le modifiche in corso 
      */
     public function cancelChanges()
     {
@@ -157,7 +157,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Metodi di compatibilità (non utilizzati ma mantenuti per sicurezza)
+     * Metodi di compatibilità 
      */
     public function confirmChanges(Request $request)
     {
@@ -184,7 +184,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Determina la dashboard in base al ruolo (helper)
+     * Determina la dashboard in base al ruolo 
      */
     private function getDashboardRoute($user): string
     {

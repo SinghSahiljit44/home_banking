@@ -30,7 +30,7 @@ class EmployeeClientController extends Controller
     }
 
     /**
-     * AGGIORNATO: Registra un nuovo cliente e lo auto-assegna
+     * Registra un nuovo cliente e lo auto-assegna
      */
     public function store(Request $request)
     {
@@ -70,10 +70,6 @@ class EmployeeClientController extends Controller
                 'email_verified_at' => now(),
             ]);
 
-            // RIMOSSO assignRole perché non è configurato nel progetto
-            // $client->assignRole('client');
-
-            // Auto-assegna il cliente a questo employee se richiesto
             if ($request->boolean('auto_assign')) {
                 \App\Models\EmployeeClientAssignment::create([
                     'employee_id' => $employee->id,
@@ -183,7 +179,6 @@ class EmployeeClientController extends Controller
             'password' => Hash::make($newPassword)
         ]);
 
-        // Log dell'operazione
         \Log::info('Employee password reset:', [
             'employee_id' => $employee->id,
             'employee_name' => $employee->full_name,
@@ -309,7 +304,7 @@ class EmployeeClientController extends Controller
     }
 
     /**
-     * AGGIORNATO: Blocca/sblocca un cliente assegnato
+     * Blocca/sblocca un cliente assegnato
      */
     public function toggleClientStatus(User $client)
     {
@@ -337,87 +332,6 @@ class EmployeeClientController extends Controller
         return back()->with('success', "Cliente {$status} con successo.");
     }
 
-    /**
-     * AGGIORNATO: Rimuove un cliente assegnato (solo disattivazione)
-     */
-    public function removeClient(User $client)
-    {
-        $employee = Auth::user();
-
-        if (!$employee->canManageClient($client)) {
-            abort(403, 'Non hai accesso a questo cliente.');
-        }
-
-        try {
-            \DB::beginTransaction();
-
-            // Salva dati per logging prima dell'eliminazione
-            $clientData = [
-                'id' => $client->id,
-                'email' => $client->email,
-                'username' => $client->username,
-                'full_name' => $client->full_name,
-                'account_balance' => $client->account ? $client->account->balance : 0,
-                'account_number' => $client->account ? $client->account->account_number : null,
-            ];
-
-            // 1. Elimina tutte le transazioni associate all'account
-            if ($client->account) {
-                // Elimina transazioni in entrata
-                $client->account->incomingTransactions()->delete();
-                
-                // Elimina transazioni in uscita
-                $client->account->outgoingTransactions()->delete();
-                
-                // Elimina l'account
-                $client->account->delete();
-            }
-
-            // 2. Elimina le assegnazioni employee-client
-            $client->clientAssignments()->delete();
-
-            // 3. Elimina i beneficiari
-            $client->beneficiaries()->delete();
-
-            // 4. Elimina le domande di sicurezza
-            if ($client->securityQuestion) {
-                $client->securityQuestion->delete();
-            }
-
-            // 5. Elimina definitivamente il cliente
-            $client->delete();
-
-            \DB::commit();
-
-            // Log dell'operazione
-            \Log::warning('Client permanently deleted by employee:', [
-                'employee_id' => $employee->id,
-                'employee_name' => $employee->full_name,
-                'deleted_client_data' => $clientData,
-                'deletion_type' => 'HARD_DELETE',
-                'timestamp' => now()->toISOString(),
-            ]);
-
-            $message = "Cliente {$clientData['full_name']} eliminato definitivamente dal sistema.";
-            if ($clientData['account_balance'] > 0) {
-                $message .= " Saldo di €" . number_format($clientData['account_balance'], 2, ',', '.') . " eliminato.";
-            }
-
-            return back()->with('success', $message);
-
-        } catch (\Exception $e) {
-            \DB::rollBack();
-            
-            \Log::error('Client hard deletion failed:', [
-                'employee_id' => $employee->id,
-                'client_id' => $client->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return back()->withErrors(['general' => 'Errore durante l\'eliminazione del cliente: ' . $e->getMessage()]);
-        }
-    }
 
     /**
      * Metodo privato per creare un conto
@@ -502,7 +416,6 @@ class EmployeeClientController extends Controller
                 $description
             );
 
-            // Log dell'operazione
             \Log::info('Employee created withdrawal for client:', [
                 'employee_id' => $employee->id,
                 'employee_name' => $employee->full_name,

@@ -19,7 +19,6 @@ class PasswordRecoveryController extends Controller
 
     /**
      * Mostra il form per il recupero credenziali
-     * AGGIORNATO: Employee vede solo clienti assegnati - FIXED QUERY
      */
     public function index(Request $request)
     {
@@ -27,11 +26,8 @@ class PasswordRecoveryController extends Controller
         
         // Lista utenti disponibili in base al ruolo
         if ($currentUser->isAdmin()) {
-            // Admin vede tutti gli utenti tranne:
-            // 1. Se stesso
-            // 2. Altri admin
             $query = User::where('id', '!=', $currentUser->id)
-                        ->where('role', '!=', 'admin') // ESCLUDE ALTRI ADMIN
+                        ->where('role', '!=', 'admin') 
                         ->where('is_active', true);
         } else {
             // Employee vede solo i suoi clienti assegnati
@@ -57,14 +53,14 @@ class PasswordRecoveryController extends Controller
 
         if ($request->filled('role') && $currentUser->isAdmin()) {
             $role = $request->get('role');
-            if ($role !== 'admin') { // Assicurati che non possa filtrare per admin
+            if ($role !== 'admin') { 
                 $query->where('role', $role);
             }
         }
 
         $users = $query->orderBy('role')->orderBy('last_name')->get();
 
-        // Statistiche (escludendo admin dal conteggio per admin)
+        // Statistiche 
         if ($currentUser->isAdmin()) {
             $stats = [
                 'total_available' => $users->count(),
@@ -84,7 +80,6 @@ class PasswordRecoveryController extends Controller
 
     /**
      * Genera nuova password per un utente
-     * AGGIORNATO: Controlli specifici per employee
      */
     public function generatePassword(Request $request)
     {
@@ -102,7 +97,6 @@ class PasswordRecoveryController extends Controller
         $currentUser = Auth::user();
         $targetUser = User::findOrFail($request->user_id);
 
-        // Verifica permessi - AGGIORNATO
         if (!$this->canResetUserPassword($currentUser, $targetUser)) {
             abort(403, 'Non hai i permessi per resettare la password di questo utente.');
         }
@@ -117,7 +111,6 @@ class PasswordRecoveryController extends Controller
                 'password' => Hash::make($newPassword)
             ]);
 
-            // Log dell'operazione
             \Log::info('Password reset by admin/employee:', [
                 'reset_by_id' => $currentUser->id,
                 'reset_by_name' => $currentUser->full_name,
@@ -128,11 +121,6 @@ class PasswordRecoveryController extends Controller
                 'reason' => $request->reason,
                 'notify_user' => $request->boolean('notify_user'),
             ]);
-
-            // Invia notifica se richiesto
-            if ($request->boolean('notify_user')) {
-                $this->notifyUserOfPasswordReset($targetUser, $newPassword, $currentUser, $request->reason);
-            }
 
             return back()->with('success', "Password resettata con successo per {$targetUser->full_name}")
                         ->with('new_password', $newPassword)
@@ -150,7 +138,7 @@ class PasswordRecoveryController extends Controller
     }
 
     /**
-     * Reset username (solo admin)
+     * Reset username 
      */
     public function resetUsername(Request $request)
     {
@@ -177,7 +165,6 @@ class PasswordRecoveryController extends Controller
                 'username' => $request->new_username
             ]);
 
-            // Log dell'operazione
             \Log::info('Username changed by admin:', [
                 'changed_by_id' => $currentUser->id,
                 'changed_by_name' => $currentUser->full_name,
@@ -219,7 +206,6 @@ class PasswordRecoveryController extends Controller
         try {
             $targetUser->update(['is_active' => true]);
 
-            // Log dell'operazione
             \Log::info('Account unlocked:', [
                 'unlocked_by_id' => $currentUser->id,
                 'unlocked_by_name' => $currentUser->full_name,
@@ -237,26 +223,22 @@ class PasswordRecoveryController extends Controller
 
     /**
      * Verifica se l'utente corrente può resettare la password dell'utente target
-     * AGGIORNATO: Controlli specifici per employee - FIXED
+     * 
      */
     private function canResetUserPassword(User $currentUser, User $targetUser): bool
     {
-        // Admin può resettare password di tutti tranne:
-        // 1. Se stesso
-        // 2. Altri admin
         if ($currentUser->isAdmin()) {
             if ($currentUser->id === $targetUser->id) {
-                return false; // Non può resettare la propria password
+                return false; 
             }
             
             if ($targetUser->isAdmin()) {
-                return false; // Non può resettare password di altri admin
+                return false; 
             }
             
-            return true; // Può resettare password di employee e client
+            return true; 
         }
 
-        // Employee può resettare solo password dei clienti assegnati
         if ($currentUser->isEmployee()) {
             return $targetUser->isClient() && $currentUser->canManageClient($targetUser);
         }
@@ -266,26 +248,21 @@ class PasswordRecoveryController extends Controller
 
     /**
      * Verifica se l'utente corrente può gestire l'utente target
-     * AGGIORNATO: Controlli specifici per employee - FIXED
      */
     private function canManageUser(User $currentUser, User $targetUser): bool
     {
-        // Admin può gestire tutti tranne:
-        // 1. Se stesso  
-        // 2. Altri admin
         if ($currentUser->isAdmin()) {
             if ($currentUser->id === $targetUser->id) {
-                return false; // Non può gestire se stesso
+                return false; 
             }
             
             if ($targetUser->isAdmin()) {
-                return false; // Non può gestire altri admin
+                return false; 
             }
             
-            return true; // Può gestire employee e client
+            return true; 
         }
 
-        // Employee può gestire solo i clienti assegnati
         if ($currentUser->isEmployee()) {
             return $targetUser->isClient() && $currentUser->canManageClient($targetUser);
         }
@@ -294,8 +271,7 @@ class PasswordRecoveryController extends Controller
     }
 
     /**
-     * API endpoint per cercare utenti (per autocompletamento)
-     * AGGIORNATO: Filtri specifici per employee - FIXED QUERY
+     * Filtri specifici per employee 
      */
     public function searchUsers(Request $request)
     {
@@ -319,7 +295,6 @@ class PasswordRecoveryController extends Controller
                         ->limit(10)
                         ->get();
         } else {
-            // Employee vede solo i suoi clienti assegnati - CORREZIONE CON QUERY DIRETTA
             $clientIds = EmployeeClientAssignment::where('employee_id', $currentUser->id)
                                                 ->where('is_active', true)
                                                 ->pluck('client_id');
@@ -377,33 +352,6 @@ class PasswordRecoveryController extends Controller
     }
 
     /**
-     * Invia notifica all'utente del reset password
-     */
-    private function notifyUserOfPasswordReset(User $user, string $newPassword, User $resetBy, string $reason): void
-    {
-        try {
-            // In un'implementazione reale, useresti il sistema di email di Laravel
-            // Per ora logghiamo solo l'operazione
-            \Log::info('Password reset notification should be sent:', [
-                'user_id' => $user->id,
-                'user_email' => $user->email,
-                'reset_by' => $resetBy->full_name,
-                'reason' => $reason,
-                // NON loggare la password in produzione
-            ]);
-
-            // TODO: Implementare invio email
-            // Mail::to($user->email)->send(new PasswordResetNotification($user, $newPassword, $resetBy, $reason));
-
-        } catch (\Exception $e) {
-            \Log::error('Failed to send password reset notification:', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
-
-    /**
      * Mostra il log delle operazioni di recupero password
      */
     public function auditLog(Request $request)
@@ -411,14 +359,11 @@ class PasswordRecoveryController extends Controller
         if (!Auth::user()->isAdmin()) {
             abort(403, 'Solo gli amministratori possono vedere i log di audit.');
         }
-
-        // In un'implementazione reale, avresti una tabella dedicata ai log
-        // Per ora mostriamo una vista placeholder
         return view('admin.password-recovery.audit-log');
     }
 
     /**
-     * Genera credenziali multiple (bulk) - Solo Admin
+     * Genera credenziali multiple 
      */
     public function bulkReset(Request $request)
     {
@@ -460,17 +405,11 @@ class PasswordRecoveryController extends Controller
                     'password' => $newPassword,
                 ];
 
-                // Log dell'operazione
                 \Log::info('Bulk password reset:', [
                     'reset_by_id' => $currentUser->id,
                     'target_user_id' => $targetUser->id,
                     'reason' => $request->reason,
                 ]);
-
-                // Notifica se richiesto
-                if ($request->boolean('notify_users')) {
-                    $this->notifyUserOfPasswordReset($targetUser, $newPassword, $currentUser, $request->reason);
-                }
 
             } catch (\Exception $e) {
                 $errors[] = "Errore per utente ID {$userId}: " . $e->getMessage();
