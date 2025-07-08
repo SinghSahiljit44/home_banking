@@ -293,7 +293,6 @@ class AdminTransactionController extends Controller
                 'description' => $transaction->description . ' [STORNATA]'
             ]);
 
-            // Log dell'operazione
             \Log::info('Transaction reversed by admin:', [
                 'admin_id' => Auth::id(),
                 'admin_name' => Auth::user()->full_name,
@@ -360,7 +359,7 @@ class AdminTransactionController extends Controller
 
         $currentUser = Auth::user();
 
-        // PROTEZIONE RINFORZATA: Admin non possono modificare credenziali di altri admin
+        //Admin non possono modificare credenziali di altri admin
         if ($user->isAdmin() && $user->id !== $currentUser->id) {
             return back()->withErrors(['error' => 'Non puoi modificare le credenziali di altri amministratori.']);
         }

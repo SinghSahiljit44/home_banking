@@ -125,28 +125,7 @@
                             </div>
                         </div>
 
-                        <!-- Opzioni Assegnazione -->
-                        <div class="card bg-dark border-secondary mb-4">
-                            <div class="card-header">
-                                <h6><i class="fas fa-user-tie me-2"></i>Assegnazione Cliente</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" 
-                                               type="checkbox" 
-                                               id="auto_assign" 
-                                               name="auto_assign" 
-                                               value="1" 
-                                               {{ old('auto_assign', true) ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="auto_assign">
-                                            Assegna automaticamente a me
-                                        </label>
-                                    </div>
-                                    <div class="form-text">Se abilitato, il cliente verrà assegnato automaticamente a te</div>
-                                </div>
-                            </div>
-                        </div>
+                        <input type="hidden" name="auto_assign" value="1">
 
                         <!-- Opzioni Conto -->
                         <div class="card bg-dark border-secondary mb-4">

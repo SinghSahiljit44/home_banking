@@ -9,9 +9,6 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-chart-line me-2"></i>Report Transazioni</h2>
                 <div>
-                    <a href="{{ route('admin.reports.export.transactions', request()->query()) }}" class="btn btn-success me-2">
-                        <i class="fas fa-download me-1"></i>Esporta CSV
-                    </a>
                     <a href="{{ route('admin.reports.index') }}" class="btn btn-outline-light">
                         <i class="fas fa-arrow-left me-1"></i>Report Dashboard
                     </a>

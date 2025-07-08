@@ -9,9 +9,6 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-users me-2"></i>Report Utenti</h2>
                 <div>
-                    <button class="btn btn-success me-2" onclick="exportUsersData()">
-                        <i class="fas fa-download me-1"></i>Esporta CSV
-                    </button>
                     <a href="{{ route('admin.reports.index') }}" class="btn btn-outline-light">
                         <i class="fas fa-arrow-left me-1"></i>Report Dashboard
                     </a>
@@ -266,11 +263,6 @@
                                            class="btn btn-sm btn-outline-info" 
                                            title="Visualizza">
                                             <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="{{ route('admin.users.edit', $user) }}" 
-                                           class="btn btn-sm btn-outline-warning" 
-                                           title="Modifica">
-                                            <i class="fas fa-edit"></i>
                                         </a>
                                         @if($user->account)
                                             <button type="button" 
@@ -598,9 +590,6 @@ function exportUsersData() {
     if (status) params.append('status', status);
     if (hasAccount) params.append('has_account', hasAccount);
     params.append('export', '1');
-    
-    // Crea e scarica il CSV
-    window.location.href = `{{ route('admin.reports.users') }}?${params.toString()}`;
 }
 </script>
 
