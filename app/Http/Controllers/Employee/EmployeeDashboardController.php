@@ -56,7 +56,6 @@ class EmployeeDashboardController extends Controller
     {
         $employee = Auth::user();
         
-        // Query diretta per evitare problemi con le relazioni
         $assignedClientIds = EmployeeClientAssignment::where('employee_id', $employee->id)
                                                     ->where('is_active', true)
                                                     ->pluck('client_id');

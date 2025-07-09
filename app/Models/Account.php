@@ -87,7 +87,6 @@ class Account extends Model
 
     /**
      * Ottiene l'importo della transazione dal punto di vista di questo conto
-     * (positivo per entrate, negativo per uscite)
      */
     public function getTransactionAmount(Transaction $transaction): float
     {

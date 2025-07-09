@@ -210,9 +210,6 @@ class User extends Authenticatable
     public function canRemoveUser(User $targetUser): bool
     {
         if ($this->isAdmin()) {
-            // Admin può rimuovere tutti tranne:
-            // 1. Altri admin (protezione totale)
-            // 2. Se stesso
             return !$targetUser->isAdmin() && $this->id !== $targetUser->id;
         }
 
@@ -230,9 +227,6 @@ class User extends Authenticatable
     public function canManageUserCredentials(User $targetUser): bool
     {
         if ($this->isAdmin()) {
-            // Admin può gestire credenziali di tutti TRANNE:
-            // 1. Altri admin (completamente)
-            // 2. Se stesso (solo le proprie credenziali tramite profilo)
             if ($targetUser->isAdmin()) {
                 return $this->id === $targetUser->id; // Solo le proprie credenziali di admin
             }

@@ -158,7 +158,6 @@ class AdminTransactionController extends Controller
                 $request->beneficiary_name
             );
 
-            // Log dell'operazione
             \Log::info('Admin created transfer for client:', [
                 'admin_id' => Auth::id(),
                 'admin_name' => Auth::user()->full_name,
@@ -170,7 +169,7 @@ class AdminTransactionController extends Controller
             ]);
 
             if ($result['success']) {
-                // MODIFICA PRINCIPALE: Invece di tornare alla pagina utente, mostra la pagina di successo
+                // Invece di tornare alla pagina utente, mostra la pagina di successo
                 return view('admin.transactions.transfer-success', [
                     'client' => $client,
                     'transaction' => $result['transaction'],

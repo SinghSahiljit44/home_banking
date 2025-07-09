@@ -275,7 +275,6 @@ class AdminUserController extends Controller
         try {
             \DB::beginTransaction();
 
-            // Salva dati per logging prima dell'eliminazione
             $userData = [
                 'id' => $user->id,
                 'email' => $user->email,
@@ -445,7 +444,7 @@ class AdminUserController extends Controller
     }
     
     /**
-     * Rimuove un utente (Admin può rimuovere tutti tranne admin)
+     * Rimuove un utente
      */
      public function removeUser(User $user)
     {
@@ -491,7 +490,7 @@ class AdminUserController extends Controller
     }
 
     /**
-     * Calcola i digit di controllo IBAN - INVARIATO
+     * Calcola i digit di controllo IBAN 
      */
     private function calculateIbanCheckDigits(string $countryCode, string $bban): string
     {
@@ -512,7 +511,7 @@ class AdminUserController extends Controller
     }
 
     /**
-     * NUOVO: Genera una password sicura
+     * Genera una password sicura
      */
     private function generateSecurePassword(int $length = 12): string
     {

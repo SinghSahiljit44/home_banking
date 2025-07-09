@@ -231,8 +231,7 @@ class EmployeeUniversalController extends Controller
                 $request->amount,
                 $description
             );
-
-            // Log dell'operazione
+            
             \Log::info('Employee universal withdrawal:', [
                 'employee_id' => $employee->id,
                 'employee_name' => $employee->full_name,
