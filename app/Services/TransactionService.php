@@ -178,7 +178,7 @@ class TransactionService
     }
 
     /**
-     * Crea un deposito sul conto - FIXED: NON MODIFICA IL SALDO DIRETTAMENTE
+     * Crea un deposito sul conto
      */
     public function createDeposit(Account $account, float $amount, string $description = 'Deposito'): Transaction
     {

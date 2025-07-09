@@ -211,11 +211,6 @@
                                 </td>
                                 <td>
                                     {{ $user->email }}
-                                    @if($user->email_verified_at)
-                                        <br><small class="text-success"><i class="fas fa-check-circle"></i> Verificata</small>
-                                    @else
-                                        <br><small class="text-warning"><i class="fas fa-exclamation-triangle"></i> Non verificata</small>
-                                    @endif
                                 </td>
                                 <td>
                                     <span class="badge bg-{{ $user->role === 'admin' ? 'danger' : ($user->role === 'employee' ? 'warning' : 'success') }}">
@@ -362,13 +357,6 @@
                                 <div class="alert alert-danger py-2 mb-2">
                                     <i class="fas fa-user-slash me-2"></i>
                                     <strong>{{ $inactiveUsers }}</strong> utenti disattivati
-                                </div>
-                            @endif
-                            
-                            @if($unverifiedEmails > 0)
-                                <div class="alert alert-info py-2 mb-2">
-                                    <i class="fas fa-envelope me-2"></i>
-                                    <strong>{{ $unverifiedEmails }}</strong> email non verificate
                                 </div>
                             @endif
                             

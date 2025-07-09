@@ -265,9 +265,6 @@ class User extends Authenticatable
     public function canToggleUserStatus(User $targetUser): bool
     {
         if ($this->isAdmin()) {
-            // Admin può gestire status di tutti tranne:
-            // 1. Altri admin
-            // 2. Se stesso
             return !$targetUser->isAdmin() && $this->id !== $targetUser->id;
         }
 
@@ -369,14 +366,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Ottieni clienti per cui può recuperare credenziali - METODO SICURO
+     * Ottieni clienti per cui può recuperare credenziali
      */
    public function getClientsForCredentialRecovery()
     {
         if ($this->isAdmin()) {
-            // Admin può recuperare credenziali per tutti TRANNE:
-            // 1. Se stesso
-            // 2. Altri admin
             return User::where('id', '!=', $this->id)
                     ->where('role', '!=', 'admin') // ESCLUDE ALTRI ADMIN
                     ->where('is_active', true)
@@ -416,34 +410,10 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the user's display name (compatibility with Jetstream)
-     */
-    public function getNameAttribute(): ?string
-    {
-        return $this->full_name ?? $this->username ?? 'User';
-    }
-
-    /**
-     * Check if user has a specific role (for middleware compatibility)
+     * Check if user has a specific role
      */
     public function hasRole(string $role): bool
     {
         return $this->role === $role;
-    }
-
-    /**
-     * For Jetstream team compatibility (returns empty collection if not using teams)
-     */
-    public function allTeams()
-    {
-        return collect();
-    }
-
-    /**
-     * For Jetstream team compatibility (returns null if not using teams)
-     */
-    public function getCurrentTeamAttribute()
-    {
-        return null;
     }
 }

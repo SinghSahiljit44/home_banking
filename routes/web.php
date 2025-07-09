@@ -241,7 +241,6 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/reset-username', [PasswordRecoveryController::class, 'resetUsername'])->name('reset-username');
             Route::post('/unlock-account', [PasswordRecoveryController::class, 'unlockAccount'])->name('unlock-account');
             Route::post('/bulk-reset', [PasswordRecoveryController::class, 'bulkReset'])->name('bulk-reset');
-            Route::get('/audit-log', [PasswordRecoveryController::class, 'auditLog'])->name('audit-log');
             Route::get('/search-users', [PasswordRecoveryController::class, 'searchUsers'])->name('search-users');
         });
 
@@ -250,7 +249,6 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/', [App\Http\Controllers\Admin\ReportController::class, 'index'])->name('index');
             Route::get('/transactions', [App\Http\Controllers\Admin\ReportController::class, 'transactions'])->name('transactions');
             Route::get('/users', [App\Http\Controllers\Admin\ReportController::class, 'users'])->name('users');
-            Route::get('/export/transactions', [App\Http\Controllers\Admin\ReportController::class, 'exportTransactions'])->name('export.transactions');
         });
 
         // GESTIONE TRANSAZIONI
@@ -260,7 +258,6 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{transaction}/approve', [AdminTransactionController::class, 'approve'])->name('approve');
             Route::post('/{transaction}/reject', [AdminTransactionController::class, 'reject'])->name('reject');
             Route::post('/{transaction}/reverse', [AdminTransactionController::class, 'reverse'])->name('reverse');
-            Route::get('/export-csv', [AdminTransactionController::class, 'exportCsv'])->name('export-csv');
             
             // BONIFICI PER CONTO DEI CLIENTI
             Route::get('/create-transfer/{client}', [AdminTransactionController::class, 'showCreateTransferForm'])->name('create-transfer-form');

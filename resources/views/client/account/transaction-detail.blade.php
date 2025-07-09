@@ -147,18 +147,11 @@
                     @endif
 
                     <!-- Azioni -->
-                    <div class="row">
+                    <div class="row justify-content-center">
                         <div class="col-md-6 mb-2">
                             <div class="d-grid">
                                 <button class="btn btn-outline-light" onclick="window.print()">
                                     <i class="fas fa-print me-2"></i>Stampa Dettagli
-                                </button>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mb-2">
-                            <div class="d-grid">
-                                <button class="btn btn-outline-info" onclick="downloadPdf()">
-                                    <i class="fas fa-download me-2"></i>Scarica PDF
                                 </button>
                             </div>
                         </div>
