@@ -247,7 +247,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const errorDiv = document.createElement('div');
         errorDiv.id = 'iban-error';
         errorDiv.className = 'invalid-feedback d-block';
-        errorDiv.style.display = 'none';
+        errorDiv.style.
+        isplay = 'none';
         ibanInput.parentNode.appendChild(errorDiv);
         return errorDiv;
     }

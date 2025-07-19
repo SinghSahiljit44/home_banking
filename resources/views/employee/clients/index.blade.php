@@ -185,8 +185,13 @@
                                 <div class="modal-body">
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
-                                            <label for="recipient_iban{{ $client->id }}" class="form-label">IBAN Beneficiario</label>
-                                            <input type="text" class="form-control" id="recipient_iban{{ $client->id }}" name="recipient_iban" required>
+                                            <label for="recipient_iban{{ $client->id }}" class="form-label">IBAN Beneficiario *</label>
+                                            <input type="text" class="form-control" id="recipient_iban{{ $client->id }}" name="recipient_iban" 
+                                                placeholder="IT60 X054 2811 1010 0000 0123 456" maxlength="34" required >
+                                            <div class="form-text">
+                                                Inserisci l'IBAN del beneficiario<br>
+                                                <small id="modal-iban-length{{ $client->id }}" class="text-muted">Caratteri inseriti (ne servono 27 per un iban italiano valido): 0</small>
+                                            </div>
                                         </div>
                                         <div class="col-md-6 mb-3">
                                             <label for="beneficiary_name{{ $client->id }}" class="form-label">Nome Beneficiario</label>
@@ -246,7 +251,6 @@
 </style>
 
 <script>
-// Auto-clear modals on hide
 document.querySelectorAll('.modal').forEach(modal => {
     modal.addEventListener('hidden.bs.modal', function() {
         const form = this.querySelector('form');
@@ -256,13 +260,92 @@ document.querySelectorAll('.modal').forEach(modal => {
     });
 });
 
-// Formatta IBAN nei modal
-document.querySelectorAll('[id^="recipient_iban"]').forEach(input => {
-    input.addEventListener('input', function(e) {
-        let value = e.target.value.replace(/\s/g, '').toUpperCase();
-        let formatted = value.replace(/(.{4})/g, '$1 ').trim();
-        e.target.value = formatted;
+document.addEventListener('DOMContentLoaded', function() {
+    // Trova tutti i modal di trasferimento
+    document.querySelectorAll('[id^="transferModal"]').forEach(function(modal) {
+        const clientId = modal.id.replace('transferModal', '');
+        const ibanInput = document.getElementById('recipient_iban' + clientId);
+        const lengthCounter = document.getElementById('modal-iban-length' + clientId);
+        const submitBtn = modal.querySelector('button[type="submit"]');
+        
+        if (ibanInput && lengthCounter && submitBtn) {
+            // Formattazione e validazione IBAN
+            ibanInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\s/g, '').toUpperCase();
+                let formatted = value.replace(/(.{4})/g, '$1 ').trim();
+                e.target.value = formatted;
+                
+                const cleanValue = value.replace(/\s/g, '');
+                
+                // Aggiorna contatore caratteri
+                lengthCounter.textContent = `Caratteri inseriti (ne servono 27 per un iban italiano valido): ${cleanValue.length}`;
+                
+                // Controllo semplice e diretto del formato
+                let hasError = false;
+                let errorMessage = '';
+                
+                // Se ci sono almeno 2 caratteri, controlla che siano lettere
+                if (cleanValue.length >= 2) {
+                    const char1 = cleanValue.charAt(0);
+                    const char2 = cleanValue.charAt(1);
+                    
+                    if (!(char1 >= 'A' && char1 <= 'Z') || !(char2 >= 'A' && char2 <= 'Z')) {
+                        hasError = true;
+                        errorMessage = 'I primi due caratteri devono essere lettere (codice paese)';
+                    }
+                }
+                
+                // Se ci sono almeno 4 caratteri e i primi 2 sono ok, controlla che il 3° e 4° siano cifre
+                if (cleanValue.length >= 4 && !hasError) {
+                    const char3 = cleanValue.charAt(2);
+                    const char4 = cleanValue.charAt(3);
+                    
+                    if (!(char3 >= '0' && char3 <= '9') || !(char4 >= '0' && char4 <= '9')) {
+                        hasError = true;
+                        errorMessage = 'Il terzo e quarto carattere devono essere cifre (codice controllo)';
+                    }
+                }
+                
+                // Mostra errore e disabilita pulsante se necessario
+                if (hasError) {
+                    lengthCounter.className = 'text-danger';
+                    lengthCounter.textContent += ` ✗ ${errorMessage}`;
+                    submitBtn.disabled = true;
+                    ibanInput.classList.add('is-invalid');
+                } else {
+                    // Nessun errore di formato, usa la logica normale
+                    ibanInput.classList.remove('is-invalid');
+                    submitBtn.disabled = false;
+                    
+                    if (cleanValue.length === 0) {
+                        lengthCounter.className = 'text-muted';
+                    } else if (cleanValue.startsWith('IT') && cleanValue.length === 27) {
+                        lengthCounter.className = 'text-success';
+                        lengthCounter.textContent += ' ✓ IBAN italiano valido';
+                    } else if (cleanValue.length >= 15 && cleanValue.length <= 34) {
+                        lengthCounter.className = 'text-warning';
+                        lengthCounter.textContent += ' (verificare validità del paese)';
+                    } else if (cleanValue.length > 0 && cleanValue.length < 15) {
+                        lengthCounter.className = 'text-danger';
+                        lengthCounter.textContent += ' ✗ Lunghezza non valida per un IBAN';
+                        submitBtn.disabled = true;
+                        ibanInput.classList.add('is-invalid');
+                    }
+                }
+                
+                // Controllo aggiuntivo per IBAN vuoto
+                if (cleanValue.length === 0) {
+                    submitBtn.disabled = true;
+                }
+            });
+            
+            // Validazione quando si apre il modal
+            modal.addEventListener('shown.bs.modal', function() {
+                submitBtn.disabled = true; // Inizialmente disabilitato
+            });
+        }
     });
 });
+
 </script>
 @endsection
