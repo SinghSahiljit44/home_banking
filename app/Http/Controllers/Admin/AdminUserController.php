@@ -474,7 +474,7 @@ class AdminUserController extends Controller
         // Genera IBAN italiano
         $bankCode = '05428'; // Codice banca fittizio
         $branchCode = '11101'; // Codice filiale
-        $accountCode = str_pad(random_int(0, 999999999999), 12, '0', STR_PAD_LEFT);
+        $accountCode = str_pad(random_int(0, 999999999999), 13, '0', STR_PAD_LEFT);
         
         $bban = $bankCode . $branchCode . $accountCode;
         $checkDigits = $this->calculateIbanCheckDigits('IT', $bban);

@@ -29,16 +29,13 @@ class ReportController extends Controller
         ];
 
         // Transazioni per mese (ultimi 12 mesi)
-        $monthlyTransactions = Transaction::select(
-                DB::raw('YEAR(created_at) as year'),
-                DB::raw('MONTH(created_at) as month'),
-                DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(amount) as total_amount')
+        $dailyTransactions = Transaction::select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('COUNT(*) as count')
             )
-            ->where('created_at', '>=', Carbon::now()->subMonths(12))
-            ->groupBy('year', 'month')
-            ->orderBy('year', 'desc')
-            ->orderBy('month', 'desc')
+            ->where('created_at', '>=', Carbon::now()->subDays(30))
+            ->groupBy('date')
+            ->orderBy('date')
             ->get();
 
         // Top transazioni
@@ -47,7 +44,7 @@ class ReportController extends Controller
             ->limit(10)
             ->get();
 
-        return view('admin.reports.index', compact('stats', 'monthlyTransactions', 'topTransactions'));
+        return view('admin.reports.index', compact('stats', 'dailyTransactions', 'topTransactions'));
     }
 
     /**

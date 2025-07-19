@@ -231,8 +231,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const beneficiary = beneficiaryInput.value || 'Non specificato';
         const amount = amountInput.value;
         const description = descriptionInput.value;
+
+        const clientIban = '{{ $client->account->iban }}';
+        const ibanEqual = iban.replace(/\s/g, '') === clientIban.replace(/\s/g, '');
         
-        if (iban && amount && description) {
+        if (iban && amount && description && !ibanEqual) {
             summaryBeneficiary.textContent = beneficiary;
             summaryIban.textContent = iban;
             summaryAmount.textContent = '€' + parseFloat(amount || 0).toFixed(2).replace('.', ',');
@@ -243,8 +246,28 @@ document.addEventListener('DOMContentLoaded', function() {
             summary.style.display = 'none';
             submitBtn.disabled = true;
         }
+
+        const errorDiv = document.getElementById('iban-error') || createErrorDiv();
+
+        if (ibanEqual && iban) {
+            errorDiv.style.display = 'block';
+            errorDiv.textContent = 'L\'IBAN destinatario non può essere uguale a quello del mittente';
+            ibanInput.classList.add('is-invalid');
+        } else {
+            errorDiv.style.display = 'none';
+            ibanInput.classList.remove('is-invalid');
+        }
     }
     
+    function createErrorDiv() {
+        const errorDiv = document.createElement('div');
+        errorDiv.id = 'iban-error';
+        errorDiv.className = 'invalid-feedback d-block';
+        errorDiv.style.display = 'none';
+        ibanInput.parentNode.appendChild(errorDiv);
+        return errorDiv;
+    }
+
     // Validazione prima dell'invio
     form.addEventListener('submit', function(e) {
         const amount = parseFloat(amountInput.value);

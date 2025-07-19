@@ -103,10 +103,10 @@
         <div class="col-12">
             <div class="card bg-transparent border-light">
                 <div class="card-header">
-                    <h5><i class="fas fa-chart-line me-2"></i>Andamento Transazioni (Ultimi 12 Mesi)</h5>
+                    <h5><i class="fas fa-chart-line me-2"></i>Andamento Transazioni (Ultimi 30 Giorni)</h5>
                 </div>
                 <div class="card-body">
-                    <canvas id="monthlyChart" height="100"></canvas>
+                    <canvas id="dailyChart" height="100"></canvas>
                 </div>
             </div>
         </div>
@@ -115,21 +115,20 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Grafico transazioni mensili
-const ctx = document.getElementById('monthlyChart').getContext('2d');
-const monthlyChart = new Chart(ctx, {
+const ctx = document.getElementById('dailyChart').getContext('2d');
+const dailyChart = new Chart(ctx, {
     type: 'line',
     data: {
         labels: [
-            @foreach($monthlyTransactions->reverse() as $month)
-                '{{ $month->month }}/{{ $month->year }}',
+            @foreach($dailyTransactions as $day)
+                '{{ date("d/m", strtotime($day->date)) }}',
             @endforeach
         ],
         datasets: [{
             label: 'Numero Transazioni',
             data: [
-                @foreach($monthlyTransactions->reverse() as $month)
-                    {{ $month->count }},
+                @foreach($dailyTransactions as $day)
+                    {{ $day->count }},
                 @endforeach
             ],
             borderColor: 'rgb(75, 192, 192)',
@@ -141,27 +140,17 @@ const monthlyChart = new Chart(ctx, {
         responsive: true,
         plugins: {
             legend: {
-                labels: {
-                    color: 'white'
-                }
+                display: false
             }
         },
         scales: {
             y: {
-                ticks: {
-                    color: 'white'
-                },
-                grid: {
-                    color: 'rgba(255, 255, 255, 0.1)'
-                }
+                ticks: { color: 'white' },
+                grid: { color: 'rgba(255, 255, 255, 0.1)' }
             },
             x: {
-                ticks: {
-                    color: 'white'
-                },
-                grid: {
-                    color: 'rgba(255, 255, 255, 0.1)'
-                }
+                ticks: { color: 'white' },
+                grid: { color: 'rgba(255, 255, 255, 0.1)' }
             }
         }
     }

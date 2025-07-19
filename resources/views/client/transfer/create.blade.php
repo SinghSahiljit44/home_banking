@@ -57,7 +57,7 @@
                                        required>
                                 <div class="form-text text-white">
                                     Inserisci l'IBAN del beneficiario<br>
-                                    <small id="iban-length" class="text-muted">Caratteri inseriti: 0</small>
+                                    <small id="iban-length" class="text-muted">Caratteri inseriti (ne servono 27 per un iban italiano valido): 0</small>
                                 </div>
                                 @error('recipient_iban')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -114,7 +114,6 @@
                                    pattern="[A-Za-z0-9\s\-_.,!?()]+"
                                    title="Solo lettere, numeri e punteggiatura di base"
                                    required>
-                            <div class="form-text text-white">Evita caratteri speciali (accenti, simboli strani)</div>
                             @error('description')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -186,7 +185,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Aggiorna contatore caratteri
         const lengthCounter = document.getElementById('iban-length');
         const cleanValue = value.replace(/\s/g, '');
-        lengthCounter.textContent = `Caratteri inseriti: ${cleanValue.length}`;
+        lengthCounter.textContent = `Caratteri inseriti (ne servono 27 per un iban italiano valido): ${cleanValue.length}`;
         
         // Colora il contatore in base alla validità
         if (cleanValue.length === 0) {
@@ -215,8 +214,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const beneficiary = beneficiaryInput.value || 'Non specificato';
         const amount = amountInput.value;
         const description = descriptionInput.value;
+
+        const clientIban = '{{ $account->iban }}';
+        const ibanEqual = iban.replace(/\s/g, '') === clientIban.replace(/\s/g, '');
         
-        if (iban && amount && description) {
+        if (iban && amount && description && !ibanEqual) {
             summaryBeneficiary.textContent = beneficiary;
             summaryIban.textContent = iban;
             summaryAmount.textContent = '€' + parseFloat(amount || 0).toFixed(2).replace('.', ',');
@@ -227,6 +229,27 @@ document.addEventListener('DOMContentLoaded', function() {
             summary.style.display = 'none';
             submitBtn.disabled = true;
         }
+
+        const errorDiv = document.getElementById('iban-error') || createErrorDiv();
+
+        if (ibanEqual && iban) {
+            errorDiv.style.display = 'block';
+            errorDiv.textContent = 'Non puoi inviare un bonifico al tuo stesso conto';
+            ibanInput.classList.add('is-invalid');
+        } else {
+            errorDiv.style.display = 'none';
+            ibanInput.classList.remove('is-invalid');
+        }
+
+    }
+
+    function createErrorDiv() {
+        const errorDiv = document.createElement('div');
+        errorDiv.id = 'iban-error';
+        errorDiv.className = 'invalid-feedback d-block';
+        errorDiv.style.display = 'none';
+        ibanInput.parentNode.appendChild(errorDiv);
+        return errorDiv;
     }
     
     // Validazione prima dell'invio con conferma diretta

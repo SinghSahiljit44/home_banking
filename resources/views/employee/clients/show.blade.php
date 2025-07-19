@@ -388,6 +388,94 @@ document.getElementById('recipient_iban')?.addEventListener('input', function(e)
     let value = e.target.value.replace(/\s/g, '').toUpperCase();
     let formatted = value.replace(/(.{4})/g, '$1 ').trim();
     e.target.value = formatted;
+
+    validateTransferForm();
+});
+
+function validateTransferForm() {
+    const ibanInput = document.getElementById('recipient_iban');
+    const submitBtn = document.querySelector('#transferModal button[type="submit"]');
+    
+    if (!ibanInput || !submitBtn) return;
+    
+    const iban = ibanInput.value.replace(/\s/g, '');
+    const clientIban = '{{ $client->account->iban ?? "" }}'.replace(/\s/g, '');
+    const ibanEqual = iban === clientIban;
+    
+    // Controlla se esiste già un div errore
+    let errorDiv = document.getElementById('transfer-iban-error');
+    
+    // Controlla se esiste già un div per validazione IBAN
+    let validationDiv = document.getElementById('transfer-iban-validation');
+    if (!validationDiv) {
+        validationDiv = document.createElement('div');
+        validationDiv.id = 'transfer-iban-validation';
+        validationDiv.className = 'form-text';
+        ibanInput.parentNode.appendChild(validationDiv);
+    }
+    
+    // Validazione lunghezza e formato IBAN
+    let isValidIban = false;
+    
+    if (iban.length === 0) {
+        validationDiv.className = 'form-text text-muted';
+        validationDiv.textContent = 'Caratteri inseriti: 0';
+    } else if (iban.startsWith('IT') && iban.length === 27) {
+        validationDiv.className = 'form-text text-success';
+        validationDiv.textContent = `Caratteri inseriti: ${iban.length} ✓ IBAN italiano valido`;
+        isValidIban = true;
+    } else if (iban.startsWith('IT') && iban.length !== 27) {
+        validationDiv.className = 'form-text text-danger';
+        validationDiv.textContent = `Caratteri inseriti: ${iban.length} ✗ IBAN italiano deve avere 27 caratteri`;
+    } else if (iban.length >= 15 && iban.length <= 34) {
+        validationDiv.className = 'form-text text-warning';
+        validationDiv.textContent = `Caratteri inseriti: ${iban.length} (verificare validità)`;
+        isValidIban = true;
+    } else {
+        validationDiv.className = 'form-text text-danger';
+        validationDiv.textContent = `Caratteri inseriti: ${iban.length} ✗ Lunghezza non valida`;
+    }
+    
+    // Controllo IBAN uguale
+    if (ibanEqual && iban) {
+        // Crea div errore se non esiste
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.id = 'transfer-iban-error';
+            errorDiv.className = 'invalid-feedback d-block';
+            ibanInput.parentNode.appendChild(errorDiv);
+        }
+        
+        errorDiv.style.display = 'block';
+        errorDiv.textContent = 'Non puoi inviare un bonifico al conto del cliente stesso';
+        ibanInput.classList.add('is-invalid');
+        submitBtn.disabled = true;
+    } else if (!isValidIban && iban) {
+        // Blocca se IBAN non valido
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.id = 'transfer-iban-error';
+            errorDiv.className = 'invalid-feedback d-block';
+            ibanInput.parentNode.appendChild(errorDiv);
+        }
+        
+        errorDiv.style.display = 'block';
+        errorDiv.textContent = 'IBAN non valido';
+        ibanInput.classList.add('is-invalid');
+        submitBtn.disabled = true;
+    } else {
+        // Rimuovi errore
+        if (errorDiv) {
+            errorDiv.style.display = 'none';
+        }
+        ibanInput.classList.remove('is-invalid');
+        submitBtn.disabled = false;
+    }
+}
+
+
+document.getElementById('transferModal')?.addEventListener('shown.bs.modal', function() {
+    validateTransferForm();
 });
 </script>
 @endsection

@@ -69,6 +69,16 @@
             <h6><i class="fas fa-filter me-2"></i>Filtri Ricerca</h6>
         </div>
         <div class="card-body">
+            <div id="validation-errors">
+                <div id="date-error" class="alert alert-danger d-none" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    La data "Dal" non può essere successiva alla data "Al"
+                </div>
+                <div id="amount-error" class="alert alert-danger d-none" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    L'importo minimo non può essere maggiore dell'importo massimo
+                </div>
+            </div>
             <form method="GET" action="{{ route('client.account.show') }}" class="row g-3">
                 <div class="col-md-3">
                     <label for="date_from" class="form-label">Dal</label>
@@ -97,7 +107,7 @@
                     <input type="number" class="form-control" id="max_amount" name="max_amount" step="0.01" value="{{ $maxAmount }}">
                 </div>
                 <div class="col-md-12">
-                    <button type="submit" class="btn btn-primary me-2">
+                    <button type="submit" class="btn btn-primary me-2" id="filter-btn">
                         <i class="fas fa-search me-1"></i>Filtra
                     </button>
                     <a href="{{ route('client.account.show') }}" class="btn btn-secondary me-2">
@@ -256,11 +266,69 @@ function changePerPage(value) {
     window.location.href = url.toString();
 }
 
-// Auto-imposta data di fine quando si seleziona data di inizio
+function validateDates() {
+    const dateFrom = document.getElementById('date_from').value;
+    const dateTo = document.getElementById('date_to').value;
+    const dateErrorDiv = document.getElementById('date-error');
+    
+    if (dateFrom && dateTo && dateFrom > dateTo) {
+        dateErrorDiv.classList.remove('d-none');
+        return false;
+    } else {
+        dateErrorDiv.classList.add('d-none');
+        return true;
+    }
+}
+
+function validateAmounts() {
+    const minAmount = parseFloat(document.getElementById('min_amount').value);
+    const maxAmount = parseFloat(document.getElementById('max_amount').value);
+    const amountErrorDiv = document.getElementById('amount-error');
+    
+    if (minAmount && maxAmount && minAmount > maxAmount) {
+        amountErrorDiv.classList.remove('d-none');
+        return false;
+    } else {
+        amountErrorDiv.classList.add('d-none');
+        return true;
+    }
+}
+
+function validateForm() {
+    const dateValid = validateDates();
+    const amountValid = validateAmounts();
+    const submitBtn = document.getElementById('filter-btn');
+    
+    if (dateValid && amountValid) {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('disabled');
+        return true;
+    } else {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('disabled');
+        return false;
+    }
+}
+
+// Validazione su cambio delle date
 document.getElementById('date_from').addEventListener('change', function() {
     const dateTo = document.getElementById('date_to');
     if (!dateTo.value && this.value) {
         dateTo.value = this.value;
+    }
+    validateForm();
+});
+
+document.getElementById('date_to').addEventListener('change', validateForm);
+
+// Validazione su cambio degli importi
+document.getElementById('min_amount').addEventListener('input', validateForm);
+document.getElementById('max_amount').addEventListener('input', validateForm);
+
+// Previeni submit se la validazione fallisce
+document.querySelector('form').addEventListener('submit', function(e) {
+    if (!validateForm()) {
+        e.preventDefault();
     }
 });
 </script>
