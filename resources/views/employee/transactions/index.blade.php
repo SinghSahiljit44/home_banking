@@ -34,7 +34,7 @@
     @endif
 
     <!-- Statistiche Rapide -->
-    <div class="row mb-4">
+    <div class="row mb-4 justify-content-center">
         <div class="col-md-3">
             <div class="card bg-transparent border-light text-center">
                 <div class="card-body">
@@ -58,17 +58,6 @@
         <div class="col-md-3">
             <div class="card bg-transparent border-light text-center">
                 <div class="card-body">
-                    <i class="fas fa-clock fa-2x text-warning mb-2"></i>
-                    <h4 class="text-warning">
-                        {{ $transactions->where('status', 'pending')->count() }}
-                    </h4>
-                    <p class="mb-0">In Sospeso</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-transparent border-light text-center">
-                <div class="card-body">
                     <i class="fas fa-users fa-2x text-primary mb-2"></i>
                     <h4 class="text-primary">{{ $assignedClients->count() }}</h4>
                     <p class="mb-0">Clienti Assegnati</p>
@@ -83,6 +72,12 @@
             <h6><i class="fas fa-filter me-2"></i>Filtri di Ricerca</h6>
         </div>
         <div class="card-body">
+            <div id="validation-errors">
+                <div id="date-error" class="alert alert-danger d-none" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    La data "Dal" non può essere successiva alla data "Al"
+                </div>
+            </div>  
             <form method="GET" action="{{ route('employee.transactions.index') }}" class="row g-3">
                 <div class="col-md-3">
                     <label for="client_id" class="form-label">Cliente</label>
@@ -108,7 +103,7 @@
                            value="{{ request('date_to') }}">
                 </div>
                 
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label for="type" class="form-label">Tipo</label>
                     <select class="form-select" id="type" name="type">
                         <option value="">Tutti i tipi</option>
@@ -120,21 +115,14 @@
                 </div>
                 
                 <div class="col-md-2">
-                    <label for="status" class="form-label">Stato</label>
-                    <select class="form-select" id="status" name="status">
-                        <option value="">Tutti gli stati</option>
-                        <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>In Sospeso</option>
-                        <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Completato</option>
-                        <option value="failed" {{ request('status') === 'failed' ? 'selected' : '' }}>Fallito</option>
-                    </select>
-                </div>
-                
-                <div class="col-md-1">
                     <label class="form-label">&nbsp;</label>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">
+                    <div class="d-grid gap-2 d-md-flex">
+                        <button type="submit" class="btn btn-primary" id="filter-btn">
                             <i class="fas fa-search"></i>
                         </button>
+                        <a href="{{ route('employee.transactions.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i>
+                        </a>
                     </div>
                 </div>
             </form>
@@ -243,10 +231,6 @@
                                 <div>
                                     @if($transaction->status === 'completed')
                                         <span class="badge bg-success">Completato</span>
-                                    @elseif($transaction->status === 'pending')
-                                        <span class="badge bg-warning">In Sospeso</span>
-                                    @elseif($transaction->status === 'failed')
-                                        <span class="badge bg-danger">Fallito</span>
                                     @else
                                         <span class="badge bg-secondary">{{ ucfirst($transaction->status) }}</span>
                                     @endif
@@ -286,13 +270,13 @@
                     <i class="fas fa-exchange-alt fa-3x text-muted mb-3"></i>
                     <h5 class="text-muted">Nessuna transazione trovata</h5>
                     <p class="text-muted">
-                        @if(request()->hasAny(['client_id', 'date_from', 'date_to', 'type', 'status']))
+                        @if(request()->hasAny(['client_id', 'date_from', 'date_to', 'type']))
                             Non ci sono transazioni che corrispondono ai filtri selezionati.
                         @else
                             I tuoi clienti non hanno ancora effettuato transazioni.
                         @endif
                     </p>
-                    @if(request()->hasAny(['client_id', 'date_from', 'date_to', 'type', 'status']))
+                    @if(request()->hasAny(['client_id', 'date_from', 'date_to', 'type']))
                         <a href="{{ route('employee.transactions.index') }}" class="btn btn-outline-light">
                             <i class="fas fa-filter me-1"></i>Rimuovi Filtri
                         </a>
@@ -379,22 +363,71 @@ function openTransactionInNewTab(transactionId) {
     window.open(`/employee/transactions/details/${transactionId}`, '_blank');
 }
 
+// Funzioni di validazione date
+function validateDates() {
+    const dateFrom = document.getElementById('date_from').value;
+    const dateTo = document.getElementById('date_to').value;
+    const dateErrorDiv = document.getElementById('date-error');
+    
+    if (dateFrom && dateTo && dateFrom > dateTo) {
+        dateErrorDiv.classList.remove('d-none');
+        return false;
+    } else {
+        dateErrorDiv.classList.add('d-none');
+        return true;
+    }
+}
 
-// Auto-submit form quando cambiano i filtri
+function validateForm() {
+    const dateValid = validateDates();
+    const submitBtn = document.getElementById('filter-btn');
+    
+    if (dateValid) {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('disabled');
+        return true;
+    } else {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('disabled');
+        return false;
+    }
+}
+
+// Auto-submit form quando cambiano i filtri (escluse le date per evitare conflitti con la validazione)
 document.addEventListener('DOMContentLoaded', function() {
     const filterForm = document.querySelector('form[action*="transactions"]');
     if (filterForm) {
-        const selectInputs = filterForm.querySelectorAll('select, input[type="date"]');
+        const selectInputs = filterForm.querySelectorAll('select');
         
         selectInputs.forEach(input => {
             input.addEventListener('change', function() {
                 // Auto-submit dopo un breve delay per UX migliore
                 setTimeout(() => {
-                    filterForm.submit();
+                    if (validateForm()) {
+                        filterForm.submit();
+                    }
                 }, 300);
             });
         });
     }
+    
+    // Validazione su cambio delle date
+    document.getElementById('date_from').addEventListener('change', function() {
+        const dateTo = document.getElementById('date_to');
+        if (!dateTo.value && this.value) {
+            dateTo.value = this.value;
+        }
+        validateForm();
+    });
+
+    document.getElementById('date_to').addEventListener('change', validateForm);
+    
+    // Previeni submit se la validazione fallisce
+    filterForm.addEventListener('submit', function(e) {
+        if (!validateForm()) {
+            e.preventDefault();
+        }
+    });
 });
 
 // Evidenzia le transazioni di oggi
