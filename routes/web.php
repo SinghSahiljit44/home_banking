@@ -44,8 +44,22 @@ Route::middleware('guest')->group(function () {
         if ($user && Hash::check($password, $user->password)) {
             Auth::login($user, $request->filled('remember'));
             $request->session()->regenerate();
+            
+            // Log successful login
+            \Log::info('Client login successful:', [
+                'user_id' => $user->id,
+                'username' => $user->username,
+                'ip' => $request->ip(),
+            ]);
+            
             return redirect()->intended('/dashboard-cliente')->with('success', 'Accesso effettuato con successo!');
         }
+        
+        // Log failed login attempt
+        \Log::warning('Client login failed:', [
+            'username' => $username,
+            'ip' => $request->ip(),
+        ]);
         
         return back()->withErrors(['login' => 'Credenziali non valide o account non attivo.'])->withInput($request->only('username'));
     })->name('cliente.login.submit');
@@ -69,6 +83,14 @@ Route::middleware('guest')->group(function () {
             Auth::login($user, $request->filled('remember'));
             $request->session()->regenerate();
             
+            // Log successful login
+            \Log::info('Worker login successful:', [
+                'user_id' => $user->id,
+                'username' => $user->username,
+                'role' => $user->role,
+                'ip' => $request->ip(),
+            ]);
+            
             if ($user->isAdmin()) {
                 return redirect()->intended('/dashboard-admin')->with('success', 'Accesso effettuato con successo!');
             } else {
@@ -76,46 +98,79 @@ Route::middleware('guest')->group(function () {
             }
         }
         
+        // Log failed login attempt
+        \Log::warning('Worker login failed:', [
+            'matricola' => $matricola,
+            'ip' => $request->ip(),
+        ]);
+        
         return back()->withErrors(['login' => 'Credenziali non valide o account non attivo.'])->withInput($request->only('matricola'));
     })->name('lavoratore.login.submit');
 });
 
-// Routes protette (utenti autenticati)
-Route::middleware(['auth'])->group(function () {
+// Middleware per verificare la sicurezza di accesso alle dashboard
+Route::middleware(['auth', 'prevent.back'])->group(function () {
     
     // ========== DASHBOARD ROUTES ==========
     
-    // Dashboard cliente
-    Route::get('/dashboard-cliente', function () {
+    // Dashboard cliente - con doppio controllo di sicurezza
+    Route::get('/dashboard-cliente', function (Request $request) {
         $user = Auth::user();
         
         if (!$user || !$user->isClient()) {
+            \Log::warning('Unauthorized dashboard access attempt:', [
+                'user_id' => $user?->id,
+                'user_role' => $user?->role,
+                'attempted_dashboard' => 'client',
+                'ip' => $request->ip(),
+            ]);
+            
             Auth::logout();
-            return redirect('/login')->withErrors(['access' => 'Accesso non autorizzato.']);
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect('/login')->withErrors(['access' => 'Accesso non autorizzato. Disconnesso per sicurezza.']);
         }
         
         return view('dashboard-cliente');
     })->name('dashboard.cliente');
 
-    // Dashboard admin
-    Route::get('/dashboard-admin', function () {
+    // Dashboard admin - con doppio controllo di sicurezza
+    Route::get('/dashboard-admin', function (Request $request) {
         $user = Auth::user();
         
         if (!$user || !$user->isAdmin()) {
+            \Log::warning('Unauthorized admin dashboard access attempt:', [
+                'user_id' => $user?->id,
+                'user_role' => $user?->role,
+                'attempted_dashboard' => 'admin',
+                'ip' => $request->ip(),
+            ]);
+            
             Auth::logout();
-            return redirect('/login')->withErrors(['access' => 'Accesso non autorizzato.']);
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect('/login')->withErrors(['access' => 'Accesso non autorizzato. Disconnesso per sicurezza.']);
         }
         
         return view('dashboard-admin');
     })->name('dashboard.admin');
 
-    // Dashboard employee
-    Route::get('/dashboard-employee', function () {
+    // Dashboard employee - con doppio controllo di sicurezza
+    Route::get('/dashboard-employee', function (Request $request) {
         $user = Auth::user();
         
         if (!$user || !$user->isEmployee()) {
+            \Log::warning('Unauthorized employee dashboard access attempt:', [
+                'user_id' => $user?->id,
+                'user_role' => $user?->role,
+                'attempted_dashboard' => 'employee',
+                'ip' => $request->ip(),
+            ]);
+            
             Auth::logout();
-            return redirect('/login')->withErrors(['access' => 'Accesso non autorizzato.']);
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect('/login')->withErrors(['access' => 'Accesso non autorizzato. Disconnesso per sicurezza.']);
         }
         
         return view('dashboard-employee');
@@ -293,7 +348,7 @@ Route::middleware(['auth'])->group(function () {
         
         // DASHBOARD
         Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
-        Route::get('/statistics', action: [EmployeeDashboardController::class, 'statistics'])->name('statistics');
+        Route::get('/statistics', [EmployeeDashboardController::class, 'statistics'])->name('statistics');
 
         // PROFILO EMPLOYEE
         Route::prefix('profile')->name('profile.')->group(function () {
@@ -317,8 +372,8 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{client}/reset-password', [EmployeeClientController::class, 'resetPassword'])->name('reset-password');
             Route::post('/{client}/transfer', [EmployeeClientController::class, 'makeTransfer'])->name('transfer');
             Route::post('/{client}/create-account', [EmployeeClientController::class, 'createAccount'])->name('create-account');
-            Route::post('/{client}/toggle-status', [EmployeeClientController::class, 'toggleClientStatus'])->name('employee.clients.toggle-status');
-            Route::post('/{client}/remove', [EmployeeClientController::class, 'removeClient'])->name('employee.clients.remove');
+            Route::post('/{client}/toggle-status', [EmployeeClientController::class, 'toggleClientStatus'])->name('toggle-status');
+            Route::post('/{client}/remove', [EmployeeClientController::class, 'removeClient'])->name('remove');
 
             // DEPOSITI solo per clienti assegnati (tramite gestione clienti)
             Route::post('/{client}/deposit', [EmployeeClientController::class, 'deposit'])->name('deposit');
@@ -353,8 +408,31 @@ Route::middleware(['auth'])->group(function () {
 
 // ========== LOGOUT ==========
 Route::post('/logout', function (Request $request) {
+    $user = Auth::user();
+    
+    // Log del logout
+    \Log::info('User logout:', [
+        'user_id' => $user?->id,
+        'username' => $user?->username,
+        'role' => $user?->role,
+        'ip' => $request->ip(),
+    ]);
+    
     Auth::logout();
     $request->session()->invalidate();
     $request->session()->regenerateToken();
-    return redirect('/')->with('success', 'Logout effettuato con successo.');
+    
+    // Forza la rigenerazione dell'ID di sessione
+    if ($request->hasSession()) {
+        $request->session()->migrate(true);
+    }
+    
+    $response = redirect('/')->with('success', 'Logout effettuato con successo.');
+    
+    // Rimuovi anche eventuali cookie di remember_me
+    if ($request->hasCookie(Auth::getRecallerName())) {
+        $response = $response->withCookie(cookie()->forget(Auth::getRecallerName()));
+    }
+    
+    return $response;
 })->name('logout');
