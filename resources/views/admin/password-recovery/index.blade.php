@@ -117,66 +117,6 @@
         </div>
     </div>
 
-    <!-- Reset Password Singolo -->
-    <div class="card bg-transparent border-light mb-4">
-        <div class="card-header">
-            <h5><i class="fas fa-key me-2"></i>Reset Password</h5>
-        </div>
-        <div class="card-body">
-            <form method="POST" action="{{ route(Auth::user()->isAdmin() ? 'admin.password-recovery.generate' : 'employee.password-recovery.generate') }}" id="passwordResetForm">
-                @csrf
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label for="user_id" class="form-label">Seleziona Utente *</label>
-                        <select class="form-select @error('user_id') is-invalid @enderror" id="user_id" name="user_id" required>
-                            <option value="">Seleziona utente</option>
-                            @foreach($users as $user)
-                                <option value="{{ $user->id }}" {{ old('user_id') == $user->id ? 'selected' : '' }}>
-                                    {{ $user->full_name }} ({{ $user->username }})
-                                    @if(Auth::user()->isAdmin())
-                                        - {{ ucfirst($user->role) }}
-                                    @endif
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('user_id')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-2 mb-3">
-                        <label for="password_length" class="form-label">Lunghezza</label>
-                        <select class="form-select" id="password_length" name="password_length">
-                            <option value="8">8 caratteri</option>
-                            <option value="10">10 caratteri</option>
-                            <option value="12" selected>12 caratteri</option>
-                            <option value="16">16 caratteri</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-4 mb-3">
-                        <label for="reason" class="form-label">Motivo *</label>
-                        <input type="text" class="form-control @error('reason') is-invalid @enderror" 
-                               id="reason" name="reason" value="{{ old('reason') }}" 
-                               placeholder="Motivo del reset" maxlength="500" required>
-                        @error('reason')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-2 mb-3">
-                        <label class="form-label">&nbsp;</label>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-warning">
-                                <i class="fas fa-refresh me-1"></i>Reset
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
     @if(Auth::user()->isAdmin())
         <!-- Reset Username (Solo Admin) -->
         <div class="card bg-transparent border-secondary mb-4">

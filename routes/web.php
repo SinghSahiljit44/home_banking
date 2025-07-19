@@ -293,7 +293,7 @@ Route::middleware(['auth'])->group(function () {
         
         // DASHBOARD
         Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
-        Route::get('/statistics', [EmployeeDashboardController::class, 'statistics'])->name('statistics');
+        Route::get('/statistics', action: [EmployeeDashboardController::class, 'statistics'])->name('statistics');
 
         // PROFILO EMPLOYEE
         Route::prefix('profile')->name('profile.')->group(function () {
