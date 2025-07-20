@@ -118,24 +118,10 @@ class SecurityHelper
     }
     
     /**
-     * Determina la route di login appropriata
+     * Route di login appropriata
      */
     public static function getLoginRoute(Request $request): string
     {
-        $url = $request->fullUrl();
-        $path = $request->path();
-        
-        if (str_contains($url, '/admin') || str_contains($path, 'admin') || 
-            str_contains($url, '/employee') || str_contains($path, 'employee') ||
-            str_contains($url, 'dashboard-admin') || str_contains($url, 'dashboard-employee')) {
-            return 'login.lavoratore';
-        }
-        
-        if (str_contains($url, '/client') || str_contains($path, 'client') ||
-            str_contains($url, 'dashboard-cliente')) {
-            return 'login.cliente';
-        }
-        
         return 'login';
     }
     

@@ -194,14 +194,7 @@
             })
             .then(response => {
                 if (!response.ok) {
-                    // Se non autenticato, determina quale pagina di login usare
-                    if (currentPath.includes('admin') || currentPath.includes('employee')) {
-                        window.location.href = '/login-lavoratore';
-                    } else if (currentPath.includes('client')) {
-                        window.location.href = '/login-cliente';  
-                    } else {
-                        window.location.href = '/login';
-                    }
+                    window.location.href = '/login';
                 }
             })
             .catch(() => {

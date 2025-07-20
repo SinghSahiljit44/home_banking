@@ -37,7 +37,7 @@ Route::middleware(['web', 'prevent.back.logout'])->group(function () {
             $request->session()->invalidate();
             $request->session()->regenerateToken();
             
-            return redirect()->route('login.lavoratore')
+            return redirect()->route('login')
                 ->withErrors(['security' => 'Accesso negato. Non è possibile accedere a questa sezione.'])
                 ->withHeaders([
                     'Cache-Control' => 'no-cache, no-store, max-age=0, must-revalidate',
@@ -58,7 +58,7 @@ Route::middleware(['web', 'prevent.back.logout'])->group(function () {
             $request->session()->invalidate();
             $request->session()->regenerateToken();
             
-            return redirect()->route('login.lavoratore')
+            return redirect()->route('login')
                 ->withErrors(['access' => 'Accesso non autorizzato.']);
         }
         
@@ -77,7 +77,7 @@ Route::middleware(['web', 'prevent.back.logout'])->group(function () {
             $request->session()->invalidate();
             $request->session()->regenerateToken();
             
-            return redirect()->route('login.lavoratore')
+            return redirect()->route('login')
                 ->withErrors(['security' => 'Accesso negato. Non è possibile accedere a questa sezione.'])
                 ->withHeaders([
                     'Cache-Control' => 'no-cache, no-store, max-age=0, must-revalidate',
@@ -98,7 +98,7 @@ Route::middleware(['web', 'prevent.back.logout'])->group(function () {
             $request->session()->invalidate();
             $request->session()->regenerateToken();
             
-            return redirect()->route('login.lavoratore')
+            return redirect()->route('login')
                 ->withErrors(['access' => 'Accesso non autorizzato.']);
         }
         
@@ -117,7 +117,7 @@ Route::middleware(['web', 'prevent.back.logout'])->group(function () {
             $request->session()->invalidate();
             $request->session()->regenerateToken();
             
-            return redirect()->route('login.cliente')
+            return redirect()->route('login')
                 ->withErrors(['security' => 'Accesso negato. Non è possibile accedere a questa sezione.'])
                 ->withHeaders([
                     'Cache-Control' => 'no-cache, no-store, max-age=0, must-revalidate',
@@ -138,7 +138,7 @@ Route::middleware(['web', 'prevent.back.logout'])->group(function () {
             $request->session()->invalidate();
             $request->session()->regenerateToken();
             
-            return redirect()->route('login.cliente')
+            return redirect()->route('login')
                 ->withErrors(['access' => 'Accesso non autorizzato.']);
         }
         

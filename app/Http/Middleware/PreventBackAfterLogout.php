@@ -41,7 +41,7 @@ class PreventBackAfterLogout
                     // Determina la pagina di login appropriata
                     $loginRoute = $this->determineLoginRoute($request);
                     
-                    return redirect()->route($loginRoute)
+                    return redirect()->route('login')
                         ->withErrors(['security' => 'Accesso negato. Non è possibile tornare indietro dopo essere stati disconnessi per sicurezza.'])
                         ->withHeaders($this->getAntiBackHeaders());
                 }
@@ -150,25 +150,6 @@ class PreventBackAfterLogout
         session()->put('back_button_blocked', true);
         session()->put('back_button_blocked_timestamp', now()->timestamp);
         session()->save();
-    }
-
-    /**
-     * Determina quale route di login usare
-     */
-    private function determineLoginRoute(Request $request): string
-    {
-        $url = $request->fullUrl();
-        
-        if (str_contains($url, '/admin') || str_contains($url, '/employee') || 
-            str_contains($url, 'dashboard-admin') || str_contains($url, 'dashboard-employee')) {
-            return 'login.lavoratore';
-        }
-        
-        if (str_contains($url, '/client') || str_contains($url, 'dashboard-cliente')) {
-            return 'login.cliente';
-        }
-        
-        return 'login';
     }
 
     /**

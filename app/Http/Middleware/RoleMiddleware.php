@@ -97,10 +97,7 @@ class RoleMiddleware
      */
     private function redirectToLogin(Request $request, string $message): Response
     {
-        // Determina la pagina di login corretta in base al tentativo di accesso
-        $loginRoute = $this->determineLoginRoute($request);
-        
-        $response = redirect()->route($loginRoute)->withErrors(['access' => $message]);
+        $response = redirect()->route('login')->withErrors(['access' => $message]);
         
         // Rimuovi eventuali cookie di remember_me
         if ($request->hasCookie(Auth::getRecallerName())) {
@@ -109,27 +106,6 @@ class RoleMiddleware
 
         // Aggiungi header per prevenire il back button e la cache
         return $response->withHeaders($this->getSecurityHeaders());
-    }
-
-    /**
-     * Determina quale route di login usare in base alla richiesta
-     */
-    private function determineLoginRoute(Request $request): string
-    {
-        $url = $request->fullUrl();
-        
-        // Se stava tentando di accedere a una sezione admin o employee
-        if (str_contains($url, '/admin') || str_contains($url, '/employee') || str_contains($url, 'dashboard-admin') || str_contains($url, 'dashboard-employee')) {
-            return 'login.lavoratore';
-        }
-        
-        // Se stava tentando di accedere a una sezione client
-        if (str_contains($url, '/client') || str_contains($url, 'dashboard-cliente')) {
-            return 'login.cliente';
-        }
-        
-        // Default
-        return 'login';
     }
 
     /**
