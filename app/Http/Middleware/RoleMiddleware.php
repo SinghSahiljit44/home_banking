@@ -84,10 +84,11 @@ class RoleMiddleware
             $request->session()->migrate(true);
         }
 
-        // Imposta un flag per identificare il logout forzato nel prossimo accesso
+        // Imposta flag per identificare il logout forzato nel prossimo accesso
         session()->put('forced_logout_redirect', true);
         session()->put('forced_logout_reason', $reason);
         session()->put('forced_logout_timestamp', now()->timestamp);
+        session()->put('unauthorized_access_attempt', true);
         session()->save();
     }
 
@@ -96,7 +97,10 @@ class RoleMiddleware
      */
     private function redirectToLogin(Request $request, string $message): Response
     {
-        $response = redirect('/login')->withErrors(['access' => $message]);
+        // Determina la pagina di login corretta in base al tentativo di accesso
+        $loginRoute = $this->determineLoginRoute($request);
+        
+        $response = redirect()->route($loginRoute)->withErrors(['access' => $message]);
         
         // Rimuovi eventuali cookie di remember_me
         if ($request->hasCookie(Auth::getRecallerName())) {
@@ -104,13 +108,45 @@ class RoleMiddleware
         }
 
         // Aggiungi header per prevenire il back button e la cache
-        return $response->withHeaders([
+        return $response->withHeaders($this->getSecurityHeaders());
+    }
+
+    /**
+     * Determina quale route di login usare in base alla richiesta
+     */
+    private function determineLoginRoute(Request $request): string
+    {
+        $url = $request->fullUrl();
+        
+        // Se stava tentando di accedere a una sezione admin o employee
+        if (str_contains($url, '/admin') || str_contains($url, '/employee') || str_contains($url, 'dashboard-admin') || str_contains($url, 'dashboard-employee')) {
+            return 'login.lavoratore';
+        }
+        
+        // Se stava tentando di accedere a una sezione client
+        if (str_contains($url, '/client') || str_contains($url, 'dashboard-cliente')) {
+            return 'login.cliente';
+        }
+        
+        // Default
+        return 'login';
+    }
+
+    /**
+     * Header di sicurezza completi
+     */
+    private function getSecurityHeaders(): array
+    {
+        return [
             'Cache-Control' => 'no-cache, no-store, max-age=0, must-revalidate, private',
             'Pragma' => 'no-cache',
             'Expires' => 'Fri, 01 Jan 1990 00:00:00 GMT',
             'X-Frame-Options' => 'DENY',
             'X-Content-Type-Options' => 'nosniff',
-            'Clear-Site-Data' => '"cache", "storage"'
-        ]);
+            'X-XSS-Protection' => '1; mode=block',
+            'Clear-Site-Data' => '"cache", "storage"',
+            'X-Robots-Tag' => 'noindex, nofollow, nosnippet, noarchive',
+            'X-Unauthorized-Access' => 'blocked'
+        ];
     }
 }

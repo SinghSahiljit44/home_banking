@@ -15,11 +15,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'prevent.back' => \App\Http\Middleware\PreventBackHistory::class,
+            'security.session' => \App\Http\Middleware\SecuritySessionCheck::class,
+            'prevent.back.logout' => \App\Http\Middleware\PreventBackAfterLogout::class,
         ]);
 
-        // Applica il middleware prevent.back a tutte le route protette
+        // Applica i middleware di sicurezza a tutte le route web
         $middleware->web(append: [
             \App\Http\Middleware\PreventBackHistory::class,
+            \App\Http\Middleware\SecuritySessionCheck::class,
+            \App\Http\Middleware\PreventBackAfterLogout::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

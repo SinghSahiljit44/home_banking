@@ -45,14 +45,96 @@ class SecuritySessionCheck
                     // Reindirizza con messaggio specifico
                     $message = $this->getMessageForReason($reason);
                     
-                    return redirect('/login')
+                    return redirect()->route('login')
                         ->withErrors(['security' => $message])
                         ->withHeaders($this->getSecurityHeaders());
                 }
             }
         }
 
+        // Controlla se l'utente sta tentando di accedere a pagine protette dopo essere stato reindirizzato
+        if ($this->isUnauthorizedAccess($request)) {
+            // Forza logout e pulisci sessione
+            $this->forceLogoutAndCleanSession($request);
+            
+            return redirect()->route('login')
+                ->withErrors(['access' => 'Accesso negato. Non è possibile tornare indietro dopo un logout per sicurezza.'])
+                ->withHeaders($this->getSecurityHeaders());
+        }
+
         return $next($request);
+    }
+
+    /**
+     * Verifica se è un accesso non autorizzato
+     */
+    private function isUnauthorizedAccess(Request $request): bool
+    {
+        // Se l'utente non è autenticato ma sta tentando di accedere a pagine protette
+        if (!Auth::check() && $this->isProtectedRoute($request)) {
+            // Controlla se il referer è la pagina di login (possibile back button)
+            $referer = $request->header('referer');
+            if ($referer && (
+                str_contains($referer, '/login') || 
+                str_contains($referer, '/login-cliente') || 
+                str_contains($referer, '/login-lavoratore')
+            )) {
+                return true;
+            }
+
+            // Controlla se ci sono cookie o sessioni residue che indicano un logout recente
+            if (session()->has('_previous') && $this->wasRecentlyLoggedOut($request)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Verifica se c'è stato un logout recente
+     */
+    private function wasRecentlyLoggedOut(Request $request): bool
+    {
+        // Controlla se ci sono tracce di un logout recente nella sessione
+        $previousUrl = session('_previous.url', '');
+        
+        // Se l'URL precedente era una dashboard o pagina protetta
+        return str_contains($previousUrl, 'dashboard') || 
+               str_contains($previousUrl, 'admin') || 
+               str_contains($previousUrl, 'employee') || 
+               str_contains($previousUrl, 'client');
+    }
+
+    /**
+     * Forza logout e pulisce completamente la sessione
+     */
+    private function forceLogoutAndCleanSession(Request $request): void
+    {
+        if (Auth::check()) {
+            \Log::info('Forced logout due to unauthorized access attempt:', [
+                'user_id' => Auth::id(),
+                'ip' => $request->ip(),
+                'attempted_url' => $request->fullUrl(),
+            ]);
+            
+            Auth::logout();
+        }
+        
+        // Pulisci completamente la sessione
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        $request->session()->flush();
+        
+        // Forza la rigenerazione dell'ID di sessione
+        if ($request->hasSession()) {
+            $request->session()->migrate(true);
+        }
+
+        // Imposta flag per prevenire ulteriori tentativi
+        session()->put('access_denied_redirect', true);
+        session()->put('access_denied_timestamp', now()->timestamp);
+        session()->save();
     }
 
     /**
@@ -108,7 +190,8 @@ class SecuritySessionCheck
             'X-Content-Type-Options' => 'nosniff',
             'X-XSS-Protection' => '1; mode=block',
             'Clear-Site-Data' => '"cache", "storage"',
-            'X-Robots-Tag' => 'noindex, nofollow, nosnippet, noarchive'
+            'X-Robots-Tag' => 'noindex, nofollow, nosnippet, noarchive',
+            'X-Unauthorized-Access' => 'denied'
         ];
     }
 }
