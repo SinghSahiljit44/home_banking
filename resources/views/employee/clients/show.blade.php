@@ -496,7 +496,7 @@ function validateTransferForm() {
             errorDiv.textContent = formatErrorMessage;
         } else {
             errorDiv.style.display = 'block';
-            errorDiv.textContent = 'IBAN non valido';
+            errorDiv.textContent = '';
         }
         ibanInput.classList.add('is-invalid');
         submitBtn.disabled = true;
