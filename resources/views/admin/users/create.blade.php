@@ -96,7 +96,9 @@
                                                name="email" 
                                                value="{{ old('email') }}" 
                                                required 
-                                               maxlength="100">
+                                               maxlength="100"
+                                               minlength="5">
+                                        <div class="form-text">Inserisci un indirizzo email valido (es. nome@dominio.com)</div>
                                         @error('email')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -111,7 +113,9 @@
                                                id="phone" 
                                                name="phone" 
                                                value="{{ old('phone') }}" 
-                                               maxlength="20">
+                                               placeholder="1234567890"
+                                               maxlength="10">
+                                        <div class="form-text">Inserisci esattamente 10 cifre</div>
                                         @error('phone')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -277,6 +281,212 @@ document.addEventListener('DOMContentLoaded', function() {
     firstNameInput.addEventListener('blur', generateUsername);
     lastNameInput.addEventListener('blur', generateUsername);
     
+    // NUOVE VALIDAZIONI EMAIL - IDENTICHE A "REGISTRA NUOVO CLIENTE"
+    const emailInput = document.getElementById('email');
+    
+    // Funzione di validazione email
+    function validateEmail(email) {
+        const trimmedEmail = email.trim();
+        
+        // Controlli base
+        if (!trimmedEmail) return false;
+        if (!trimmedEmail.includes('@')) return false;
+        if (trimmedEmail.indexOf('@') !== trimmedEmail.lastIndexOf('@')) return false;
+        
+        const parts = trimmedEmail.split('@');
+        if (parts.length !== 2) return false;
+        
+        const localPart = parts[0];
+        const domainPart = parts[1];
+        
+        // Parte locale non può essere vuota
+        if (!localPart || localPart.length === 0) return false;
+        
+        // Parte dominio non può essere vuota
+        if (!domainPart || domainPart.length === 0) return false;
+        
+        // Il dominio DEVE contenere almeno un punto
+        if (!domainPart.includes('.')) return false;
+        
+        // Il dominio non può iniziare o finire con un punto
+        if (domainPart.startsWith('.') || domainPart.endsWith('.')) return false;
+        
+        // Controlla che dopo l'ultimo punto ci siano almeno 2 caratteri (estensione)
+        const lastDotIndex = domainPart.lastIndexOf('.');
+        const extension = domainPart.substring(lastDotIndex + 1);
+        
+        if (extension.length < 2) return false;
+        
+        // Controlla che prima dell'ultimo punto ci sia almeno un carattere (nome dominio)
+        const domainName = domainPart.substring(0, lastDotIndex);
+        if (domainName.length < 1) return false;
+        
+        return true;
+    }
+    
+    // Funzione per determinare il messaggio di errore email specifico
+    function getEmailErrorMessage(email) {
+        const trimmedEmail = email.trim();
+        
+        if (!trimmedEmail.includes('@')) {
+            return 'L\'email deve contenere il simbolo @';
+        }
+        
+        if (trimmedEmail.indexOf('@') !== trimmedEmail.lastIndexOf('@')) {
+            return 'L\'email deve contenere esattamente un simbolo @';
+        }
+        
+        const parts = trimmedEmail.split('@');
+        const localPart = parts[0];
+        const domainPart = parts[1];
+        
+        if (!localPart) {
+            return 'Inserisci la parte prima della @';
+        }
+        
+        if (!domainPart) {
+            return 'Inserisci il dominio dopo la @';
+        }
+        
+        if (!domainPart.includes('.')) {
+            return 'Il dominio deve contenere un\'estensione (es. .com, .it)';
+        }
+        
+        if (domainPart.startsWith('.')) {
+            return 'Il dominio non può iniziare con un punto';
+        }
+        
+        if (domainPart.endsWith('.')) {
+            return 'Il dominio non può terminare con un punto';
+        }
+        
+        const lastDotIndex = domainPart.lastIndexOf('.');
+        const extension = domainPart.substring(lastDotIndex + 1);
+        const domainName = domainPart.substring(0, lastDotIndex);
+        
+        if (domainName.length < 1) {
+            return 'Il nome del dominio non può essere vuoto';
+        }
+        
+        if (extension.length < 2) {
+            return 'L\'estensione del dominio deve avere almeno 2 caratteri';
+        }
+        
+        return 'Inserisci un indirizzo email valido (es. nome@dominio.com)';
+    }
+    
+    // Funzioni per gestire errori email
+    function showEmailError(message) {
+        const errorDiv = document.getElementById('email-error') || createEmailErrorDiv();
+        
+        errorDiv.textContent = message;
+        errorDiv.className = 'invalid-feedback d-block';
+        errorDiv.style.display = 'block';
+        emailInput.classList.add('is-invalid');
+        emailInput.classList.remove('is-valid');
+    }
+
+    function clearEmailError() {
+        const errorDiv = document.getElementById('email-error');
+        
+        if (errorDiv) {
+            errorDiv.style.display = 'none';
+        }
+        emailInput.classList.remove('is-invalid');
+        emailInput.classList.add('is-valid');
+    }
+    
+    function createEmailErrorDiv() {
+        const errorDiv = document.createElement('div');
+        errorDiv.id = 'email-error';
+        errorDiv.className = 'invalid-feedback d-block';
+        errorDiv.style.display = 'none';
+        emailInput.parentNode.appendChild(errorDiv);
+        return errorDiv;
+    }
+    
+    // Funzione di validazione email
+    function validateEmailField() {
+        const email = emailInput.value;
+        
+        if (!email) {
+            clearEmailError();
+            emailInput.classList.remove('is-valid', 'is-invalid');
+            return;
+        }
+
+        if (!validateEmail(email)) {
+            const errorMessage = getEmailErrorMessage(email);
+            showEmailError(errorMessage);
+        } else {
+            clearEmailError();
+        }
+    }
+    
+    // Event listeners per email
+    emailInput.addEventListener('input', validateEmailField);
+    emailInput.addEventListener('blur', validateEmailField);
+    
+    // NUOVE VALIDAZIONI TELEFONO - IDENTICHE A "REGISTRA NUOVO CLIENTE"
+    const phoneInput = document.getElementById('phone');
+    
+    phoneInput.addEventListener('input', function(e) {
+        // Rimuovi tutti i caratteri non numerici
+        let value = e.target.value.replace(/[^\d]/g, '');
+        
+        // Limita a 10 cifre
+        if (value.length > 10) {
+            value = value.substring(0, 10);
+        }
+        
+        e.target.value = value;
+        validatePhone();
+    });
+    
+    function validatePhone() {
+        const phone = phoneInput.value.trim();
+        let errorDiv = document.getElementById('phone-error') || createPhoneErrorDiv();
+        
+        if (phone === '') {
+            errorDiv.style.display = 'none';
+            phoneInput.classList.remove('is-invalid', 'is-valid');
+            return;
+        }
+        
+        let isValid = false;
+        let message = '';
+        
+        if (phone.length === 10 && /^\d{10}$/.test(phone)) {
+            isValid = true;
+            message = '✓ Numero valido (10 cifre)';
+        } else if (phone.length < 10) {
+            message = `✗ Inserisci 10 cifre (ne hai inserite ${phone.length})`;
+        } else {
+            message = '✗ Il numero deve essere di esattamente 10 cifre';
+        }
+        
+        if (isValid) {
+            phoneInput.classList.remove('is-invalid');
+            phoneInput.classList.add('is-valid');
+            errorDiv.className = 'form-text text-success';
+        } else {
+            phoneInput.classList.remove('is-valid');
+            phoneInput.classList.add('is-invalid');
+            errorDiv.className = 'invalid-feedback d-block';
+        }
+        
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+    }
+    
+    function createPhoneErrorDiv() {
+        const errorDiv = document.createElement('div');
+        errorDiv.id = 'phone-error';
+        errorDiv.style.display = 'none';
+        phoneInput.parentNode.appendChild(errorDiv);
+        return errorDiv;
+    }
+    
     // Inizializza la visualizzazione
     if (roleSelect.value === 'client') {
         accountOptions.style.display = 'block';
@@ -286,13 +496,55 @@ document.addEventListener('DOMContentLoaded', function() {
         initialBalanceGroup.style.display = 'block';
     }
     
-    if (customPasswordCheck.checked) {
+    if (customPasswordCheck && customPasswordCheck.checked) {
         passwordGroup.style.display = 'block';
         passwordInput.required = true;
     }
     
-    // Validazione form prima dell'invio
+    // Validazione form prima dell'invio - IDENTICA A "REGISTRA NUOVO CLIENTE"
     document.getElementById('createUserForm').addEventListener('submit', function(e) {
+        let hasErrors = false;
+        
+        // Verifica validità email
+        const email = emailInput.value.trim();
+        if (!validateEmail(email)) {
+            e.preventDefault();
+            const errorMessage = getEmailErrorMessage(email);
+            showEmailError(errorMessage);
+            hasErrors = true;
+        }
+        
+        // Verifica validità telefono se compilato
+        const phone = phoneInput.value.trim();
+        if (phone !== '') {
+            if (phone.length !== 10 || !/^\d{10}$/.test(phone)) {
+                e.preventDefault();
+                alert('Il numero di telefono deve essere di esattamente 10 cifre o lascia il campo vuoto.');
+                phoneInput.focus();
+                return false;
+            }
+        }
+        
+        if (hasErrors) {
+            e.stopPropagation();
+            
+            // Focus sul primo campo con errore
+            if (!validateEmail(email)) {
+                emailInput.focus();
+            }
+            
+            // Scroll verso il primo campo con errore
+            const firstErrorField = document.querySelector('.is-invalid');
+            if (firstErrorField) {
+                firstErrorField.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }
+            
+            return false;
+        }
+        
         const submitBtn = document.getElementById('submitBtn');
         
         // Disabilita il pulsante per evitare doppi invii
@@ -306,6 +558,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Crea Utente';
             }
         }, 1000);
+        
+        return true;
     });
 });
 </script>
