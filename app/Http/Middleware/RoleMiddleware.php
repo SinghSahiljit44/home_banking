@@ -1,5 +1,4 @@
 <?php
-// app/Http/Middleware/RoleMiddleware.php
 
 namespace App\Http\Middleware;
 
@@ -17,15 +16,15 @@ class RoleMiddleware
     public function handle(Request $request, Closure $next, string $role): Response
     {
         if (!Auth::check()) {
-            return redirect('/login');
+            return $this->redirectToLogin($request, 'Sessione scaduta. Effettua nuovamente il login.');
         }
 
         $user = Auth::user();
 
         // Verifica se l'utente è attivo
         if (!$user->is_active) {
-            $this->secureLogout($request);
-            return redirect('/login')->withErrors(['access' => 'Account disattivato.']);
+            $this->secureLogout($request, 'account_disabled');
+            return $this->redirectToLogin($request, 'Account disattivato.');
         }
 
         // Verifica il ruolo
@@ -38,23 +37,13 @@ class RoleMiddleware
                 'url' => $request->fullUrl(),
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
+                'referer' => $request->header('referer'),
             ]);
 
-            // Logout sicuro con invalidazione completa della sessione
-            $this->secureLogout($request);
+            // Logout sicuro con flag di accesso non autorizzato
+            $this->secureLogout($request, 'unauthorized_access');
             
-            // Invalidate anche eventuali cookie di remember_me
-            if ($request->hasCookie(Auth::getRecallerName())) {
-                $response = redirect('/login')->withErrors([
-                    'access' => 'Accesso non autorizzato. Per sicurezza sei stato disconnesso.'
-                ]);
-                
-                return $response->withCookie(cookie()->forget(Auth::getRecallerName()));
-            }
-
-            return redirect('/login')->withErrors([
-                'access' => 'Accesso non autorizzato. Per sicurezza sei stato disconnesso.'
-            ]);
+            return $this->redirectToLogin($request, 'Accesso non autorizzato. Per sicurezza sei stato disconnesso.');
         }
 
         return $next($request);
@@ -63,8 +52,21 @@ class RoleMiddleware
     /**
      * Esegue un logout sicuro con invalidazione completa della sessione
      */
-    private function secureLogout(Request $request): void
+    private function secureLogout(Request $request, string $reason = 'general'): void
     {
+        $userId = Auth::id();
+        $userName = Auth::user()->full_name ?? 'Unknown';
+        
+        // Log del logout forzato
+        \Log::info('Forced logout executed:', [
+            'user_id' => $userId,
+            'user_name' => $userName,
+            'reason' => $reason,
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toISOString(),
+        ]);
+
         // Logout dell'utente
         Auth::logout();
         
@@ -81,5 +83,34 @@ class RoleMiddleware
         if ($request->hasSession()) {
             $request->session()->migrate(true);
         }
+
+        // Imposta un flag per identificare il logout forzato nel prossimo accesso
+        session()->put('forced_logout_redirect', true);
+        session()->put('forced_logout_reason', $reason);
+        session()->put('forced_logout_timestamp', now()->timestamp);
+        session()->save();
+    }
+
+    /**
+     * Reindirizza al login con messaggio appropriato e header anti-cache
+     */
+    private function redirectToLogin(Request $request, string $message): Response
+    {
+        $response = redirect('/login')->withErrors(['access' => $message]);
+        
+        // Rimuovi eventuali cookie di remember_me
+        if ($request->hasCookie(Auth::getRecallerName())) {
+            $response = $response->withCookie(cookie()->forget(Auth::getRecallerName()));
+        }
+
+        // Aggiungi header per prevenire il back button e la cache
+        return $response->withHeaders([
+            'Cache-Control' => 'no-cache, no-store, max-age=0, must-revalidate, private',
+            'Pragma' => 'no-cache',
+            'Expires' => 'Fri, 01 Jan 1990 00:00:00 GMT',
+            'X-Frame-Options' => 'DENY',
+            'X-Content-Type-Options' => 'nosniff',
+            'Clear-Site-Data' => '"cache", "storage"'
+        ]);
     }
 }
