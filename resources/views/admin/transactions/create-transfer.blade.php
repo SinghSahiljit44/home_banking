@@ -68,7 +68,7 @@
                                        required>
                                 <div class="form-text">
                                     Inserisci l'IBAN del beneficiario<br>
-                                    <small id="iban-length" class="text-muted">Caratteri inseriti: 0</small>
+                                    <small id="iban-length" class="text-muted">Caratteri inseriti (ne servono 27 per un iban italiano valido): 0</small>
                                 </div>
                                 @error('recipient_iban')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -192,30 +192,67 @@ document.addEventListener('DOMContentLoaded', function() {
     const beneficiaryInput = document.getElementById('beneficiary_name');
     const amountInput = document.getElementById('amount');
     const descriptionInput = document.getElementById('description');
+    const lengthCounter = document.getElementById('iban-length');
     
-    // Formatta IBAN durante la digitazione
+    // Formatta IBAN durante la digitazione - VALIDAZIONE IDENTICA AI MIEI CLIENTI
     ibanInput.addEventListener('input', function(e) {
         let value = e.target.value.replace(/\s/g, '').toUpperCase();
         let formatted = value.replace(/(.{4})/g, '$1 ').trim();
         e.target.value = formatted;
         
-        // Aggiorna contatore caratteri
-        const lengthCounter = document.getElementById('iban-length');
         const cleanValue = value.replace(/\s/g, '');
-        lengthCounter.textContent = `Caratteri inseriti: ${cleanValue.length}`;
         
-        // Colora il contatore in base alla validità
-        if (cleanValue.length === 0) {
-            lengthCounter.className = 'text-muted';
-        } else if (cleanValue.startsWith('IT') && cleanValue.length === 27) {
-            lengthCounter.className = 'text-success';
-            lengthCounter.textContent += ' ✓ IBAN italiano valido';
-        } else if (cleanValue.length >= 15 && cleanValue.length <= 34) {
-            lengthCounter.className = 'text-warning';
-            lengthCounter.textContent += ' (verificare validità)';
-        } else {
+        // Aggiorna contatore caratteri
+        lengthCounter.textContent = `Caratteri inseriti (ne servono 27 per un iban italiano valido): ${cleanValue.length}`;
+        
+        // Controllo semplice e diretto del formato
+        let hasError = false;
+        let errorMessage = '';
+        
+        // Se ci sono almeno 2 caratteri, controlla che siano lettere
+        if (cleanValue.length >= 2) {
+            const char1 = cleanValue.charAt(0);
+            const char2 = cleanValue.charAt(1);
+            
+            if (!(char1 >= 'A' && char1 <= 'Z') || !(char2 >= 'A' && char2 <= 'Z')) {
+                hasError = true;
+                errorMessage = 'I primi due caratteri devono essere lettere (codice paese)';
+            }
+        }
+        
+        // Se ci sono almeno 4 caratteri e i primi 2 sono ok, controlla che il 3° e 4° siano cifre
+        if (cleanValue.length >= 4 && !hasError) {
+            const char3 = cleanValue.charAt(2);
+            const char4 = cleanValue.charAt(3);
+            
+            if (!(char3 >= '0' && char3 <= '9') || !(char4 >= '0' && char4 <= '9')) {
+                hasError = true;
+                errorMessage = 'Il terzo e quarto carattere devono essere cifre (codice controllo)';
+            }
+        }
+        
+        // Mostra errore e disabilita pulsante se necessario
+        if (hasError) {
             lengthCounter.className = 'text-danger';
-            lengthCounter.textContent += ' ✗ Lunghezza non valida';
+            lengthCounter.textContent += ` ✗ ${errorMessage}`;
+            ibanInput.classList.add('is-invalid');
+        } else {
+            // Nessun errore di formato, usa la logica normale
+            ibanInput.classList.remove('is-invalid');
+            
+            if (cleanValue.length === 0) {
+                lengthCounter.className = 'text-muted';
+            } else if (cleanValue.startsWith('IT') && cleanValue.length === 27) {
+                lengthCounter.className = 'text-success';
+                lengthCounter.textContent += ' ✓ IBAN italiano valido';
+            } else if (cleanValue.length >= 15 && cleanValue.length <= 34) {
+                lengthCounter.className = 'text-warning';
+                lengthCounter.textContent += ' (verificare validità del paese)';
+            } else if (cleanValue.length > 0 && cleanValue.length < 15) {
+                lengthCounter.className = 'text-danger';
+                lengthCounter.textContent += ' ✗ Lunghezza non valida per un IBAN';
+                ibanInput.classList.add('is-invalid');
+            }
         }
         
         updateSummary();
@@ -235,7 +272,31 @@ document.addEventListener('DOMContentLoaded', function() {
         const clientIban = '{{ $client->account->iban }}';
         const ibanEqual = iban.replace(/\s/g, '') === clientIban.replace(/\s/g, '');
         
-        if (iban && amount && description && !ibanEqual) {
+        // Controlla se l'IBAN ha errori di validazione
+        const cleanValue = iban.replace(/\s/g, '');
+        let hasValidationError = false;
+        
+        if (cleanValue.length >= 2) {
+            const char1 = cleanValue.charAt(0);
+            const char2 = cleanValue.charAt(1);
+            if (!(char1 >= 'A' && char1 <= 'Z') || !(char2 >= 'A' && char2 <= 'Z')) {
+                hasValidationError = true;
+            }
+        }
+        
+        if (cleanValue.length >= 4 && !hasValidationError) {
+            const char3 = cleanValue.charAt(2);
+            const char4 = cleanValue.charAt(3);
+            if (!(char3 >= '0' && char3 <= '9') || !(char4 >= '0' && char4 <= '9')) {
+                hasValidationError = true;
+            }
+        }
+        
+        if (cleanValue.length > 0 && cleanValue.length < 15) {
+            hasValidationError = true;
+        }
+        
+        if (iban && amount && description && !ibanEqual && !hasValidationError) {
             summaryBeneficiary.textContent = beneficiary;
             summaryIban.textContent = iban;
             summaryAmount.textContent = '€' + parseFloat(amount || 0).toFixed(2).replace('.', ',');
@@ -255,7 +316,9 @@ document.addEventListener('DOMContentLoaded', function() {
             ibanInput.classList.add('is-invalid');
         } else {
             errorDiv.style.display = 'none';
-            ibanInput.classList.remove('is-invalid');
+            if (!hasValidationError) {
+                ibanInput.classList.remove('is-invalid');
+            }
         }
     }
     

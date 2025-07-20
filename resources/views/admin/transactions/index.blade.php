@@ -61,11 +61,17 @@
             <h6><i class="fas fa-filter me-2"></i>Filtri di Ricerca</h6>
         </div>
         <div class="card-body">
+            <div id="validation-errors">
+                <div id="date-error" class="alert alert-danger d-none" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    La data "Dal" non può essere successiva alla data "Al"
+                </div>
+            </div>
             <form method="GET" action="{{ route('admin.transactions.index') }}" class="row g-3">
                 <div class="col-md-3">
                     <label for="search" class="form-label">Cerca</label>
                     <input type="text" class="form-control" id="search" name="search" 
-                           value="{{ $search }}" placeholder="Descrizione, codice, utente...">
+                        value="{{ $search }}" placeholder="Descrizione, codice, utente...">
                 </div>
                 <div class="col-md-2">
                     <label for="date_from" class="form-label">Dal</label>
@@ -75,7 +81,7 @@
                     <label for="date_to" class="form-label">Al</label>
                     <input type="date" class="form-control" id="date_to" name="date_to" value="{{ $dateTo }}">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label for="type" class="form-label">Tipo</label>
                     <select class="form-select" id="type" name="type">
                         <option value="">Tutti</option>
@@ -85,22 +91,10 @@
                         <option value="withdrawal" {{ $type === 'withdrawal' ? 'selected' : '' }}>Prelievi</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label for="status" class="form-label">Stato</label>
-                    <select class="form-select" id="status" name="status">
-                        <option value="">Tutti</option>
-                        <option value="pending" {{ $status === 'pending' ? 'selected' : '' }}>In Sospeso</option>
-                        <option value="completed" {{ $status === 'completed' ? 'selected' : '' }}>Completate</option>
-                        <option value="failed" {{ $status === 'failed' ? 'selected' : '' }}>Fallite</option>
-                    </select>
-                </div>
-                <div class="col-md-1">
-                    <label class="form-label">&nbsp;</label>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100" id="filter-btn">
+                        <i class="fas fa-search me-1"></i>Filtra
+                    </button>
                 </div>
                 <div class="col-md-12">
                     <div class="btn-group" role="group">
@@ -304,8 +298,75 @@
 @endif
 
 <script>
-// Auto-dismiss alerts after 5 seconds
 document.addEventListener('DOMContentLoaded', function() {
+    // VALIDAZIONI DATE - LOGICA IDENTICA A TRANSAZIONI CLIENTI
+    
+    // Funzioni di validazione date
+    function validateDates() {
+        const dateFrom = document.getElementById('date_from').value;
+        const dateTo = document.getElementById('date_to').value;
+        const dateErrorDiv = document.getElementById('date-error');
+        
+        if (dateFrom && dateTo && dateFrom > dateTo) {
+            dateErrorDiv.classList.remove('d-none');
+            return false;
+        } else {
+            dateErrorDiv.classList.add('d-none');
+            return true;
+        }
+    }
+
+    function validateForm() {
+        const dateValid = validateDates();
+        const submitBtn = document.getElementById('filter-btn');
+        
+        if (dateValid) {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('disabled');
+            return true;
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.classList.add('disabled');
+            return false;
+        }
+    }
+
+    // Auto-submit form quando cambiano i filtri (escluse le date per evitare conflitti con la validazione)
+    const filterForm = document.querySelector('form[action*="transactions.index"]');
+    if (filterForm) {
+        const selectInputs = filterForm.querySelectorAll('select');
+        
+        selectInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                // Auto-submit dopo un breve delay per UX migliore
+                setTimeout(() => {
+                    if (validateForm()) {
+                        filterForm.submit();
+                    }
+                }, 300);
+            });
+        });
+    }
+    
+    // Validazione su cambio delle date
+    document.getElementById('date_from').addEventListener('change', function() {
+        const dateTo = document.getElementById('date_to');
+        if (!dateTo.value && this.value) {
+            dateTo.value = this.value;
+        }
+        validateForm();
+    });
+
+    document.getElementById('date_to').addEventListener('change', validateForm);
+    
+    // Previeni submit se la validazione fallisce
+    filterForm.addEventListener('submit', function(e) {
+        if (!validateForm()) {
+            e.preventDefault();
+        }
+    });
+
+    // Auto-dismiss alerts after 5 seconds
     setTimeout(function() {
         const alerts = document.querySelectorAll('.alert');
         alerts.forEach(function(alert) {
@@ -314,13 +375,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }, 5000);
 });
-
-// Auto-imposta data di fine quando si seleziona data di inizio
-document.getElementById('date_from').addEventListener('change', function() {
-    const dateTo = document.getElementById('date_to');
-    if (!dateTo.value && this.value) {
-        dateTo.value = this.value;
-    }
-});
 </script>
+
 @endsection

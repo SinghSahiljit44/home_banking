@@ -118,52 +118,6 @@
     </div>
 
     @if(Auth::user()->isAdmin())
-        <!-- Reset Username (Solo Admin) -->
-        <div class="card bg-transparent border-secondary mb-4">
-            <div class="card-header">
-                <h5><i class="fas fa-user-edit me-2"></i>Reset Username (Solo Admin)</h5>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="{{ route('admin.password-recovery.reset-username') }}">
-                    @csrf
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="username_user_id" class="form-label">Seleziona Utente *</label>
-                            <select class="form-select" id="username_user_id" name="user_id" required>
-                                <option value="">Seleziona utente</option>
-                                @foreach($users as $user)
-                                    <option value="{{ $user->id }}">
-                                        {{ $user->full_name }} ({{ $user->username }}) - {{ ucfirst($user->role) }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="col-md-3 mb-3">
-                            <label for="new_username" class="form-label">Nuovo Username *</label>
-                            <input type="text" class="form-control" id="new_username" name="new_username" 
-                                   placeholder="nuovo.username" maxlength="50" required>
-                        </div>
-
-                        <div class="col-md-3 mb-3">
-                            <label for="username_reason" class="form-label">Motivo *</label>
-                            <input type="text" class="form-control" id="username_reason" name="reason" 
-                                   placeholder="Motivo del cambio" maxlength="500" required>
-                        </div>
-
-                        <div class="col-md-2 mb-3">
-                            <label class="form-label">&nbsp;</label>
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-info">
-                                    <i class="fas fa-edit me-1"></i>Cambia
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
         <!-- Reset Multiplo (Solo Admin) -->
         <div class="card bg-transparent border-warning mb-4">
             <div class="card-header">

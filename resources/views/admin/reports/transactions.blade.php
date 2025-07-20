@@ -22,7 +22,13 @@
         <div class="card-header">
             <h6><i class="fas fa-filter me-2"></i>Filtri Report</h6>
         </div>
-        <div class="card-body">
+        <div class="card-body">   
+            <div id="validation-errors">
+                <div id="date-error" class="alert alert-danger d-none" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    La "data inizio" non può essere successiva alla "data fine"
+                </div>
+            </div>
             <form method="GET" action="{{ route('admin.reports.transactions') }}" class="row g-3">
                 <div class="col-md-3">
                     <label for="date_from" class="form-label">Data Inizio</label>
@@ -56,7 +62,7 @@
                 <div class="col-md-2">
                     <label class="form-label">&nbsp;</label>
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" id="filter-btn">
                             <i class="fas fa-search me-1"></i>Filtra
                         </button>
                     </div>
@@ -450,31 +456,75 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Auto-imposta data di fine quando si seleziona data di inizio
+    // VALIDAZIONI - LOGICA IDENTICA A TRANSAZIONI CLIENTI
+    
+    // Funzioni di validazione date
+    function validateDates() {
+        const dateFrom = document.getElementById('date_from').value;
+        const dateTo = document.getElementById('date_to').value;
+        const dateErrorDiv = document.getElementById('date-error');
+        
+        if (dateFrom && dateTo && dateFrom > dateTo) {
+            dateErrorDiv.classList.remove('d-none');
+            return false;
+        } else {
+            dateErrorDiv.classList.add('d-none');
+            return true;
+        }
+    }
+
+    function validateForm() {
+        const dateValid = validateDates();
+        const submitBtn = document.getElementById('filter-btn');
+        
+        if (dateValid) {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('disabled');
+            return true;
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.classList.add('disabled');
+            return false;
+        }
+    }
+
+    // Auto-submit form quando cambiano i filtri (escluse le date per evitare conflitti con la validazione)
+    const filterForm = document.querySelector('form[action*="reports.transactions"]');
+    if (filterForm) {
+        const selectInputs = filterForm.querySelectorAll('select');
+        
+        selectInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                // Auto-submit dopo un breve delay per UX migliore
+                setTimeout(() => {
+                    if (validateForm()) {
+                        filterForm.submit();
+                    }
+                }, 300);
+            });
+        });
+    }
+    
+    // Validazione su cambio delle date
     document.getElementById('date_from').addEventListener('change', function() {
         const dateTo = document.getElementById('date_to');
         if (!dateTo.value && this.value) {
             dateTo.value = this.value;
         }
+        validateForm();
     });
 
-    // Validazione importi
-    const minAmount = document.getElementById('min_amount');
-    const maxAmount = document.getElementById('max_amount');
+    document.getElementById('date_to').addEventListener('change', validateForm);
     
-    minAmount.addEventListener('change', function() {
-        if (maxAmount.value && parseFloat(this.value) > parseFloat(maxAmount.value)) {
-            maxAmount.value = this.value;
-        }
-    });
-    
-    maxAmount.addEventListener('change', function() {
-        if (minAmount.value && parseFloat(this.value) < parseFloat(minAmount.value)) {
-            minAmount.value = this.value;
+    // Previeni submit se la validazione fallisce
+    filterForm.addEventListener('submit', function(e) {
+        if (!validateForm()) {
+            e.preventDefault();
         }
     });
 });
 </script>
+
 
 <style>
 .border-end {

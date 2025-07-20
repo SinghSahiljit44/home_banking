@@ -114,19 +114,16 @@
                 <div class="col-md-3">
                     <label for="notes" class="form-label">Note</label>
                     <input type="text" class="form-control @error('notes') is-invalid @enderror" 
-                           id="notes" name="notes" value="{{ old('notes') }}" 
-                           placeholder="Note opzionali" maxlength="500">
+                        id="notes" name="notes" value="{{ old('notes') }}" 
+                        placeholder="Note opzionali" maxlength="500">
                     @error('notes')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
-                <div class="col-md-1">
-                    <label class="form-label">&nbsp;</label>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-success">
-                            <i class="fas fa-link me-1"></i>Assegna
-                        </button>
-                    </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-link me-1"></i>Assegna
+                    </button>
                 </div>
             </form>
         </div>
