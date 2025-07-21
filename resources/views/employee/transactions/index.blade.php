@@ -342,7 +342,6 @@ function showTransactionDetails(transactionId) {
     
     modal.show();
 
-    // Carica i dettagli via AJAX
     fetch(`/employee/transactions/details/${transactionId}`, {
         headers: {
             'X-Requested-With': 'XMLHttpRequest',

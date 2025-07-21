@@ -422,7 +422,7 @@ document.addEventListener('DOMContentLoaded', function() {
         inactive: {{ $stats['inactive_users'] }}
     };
 
-    // Dati registrazioni per mese (ultimi 6 mesi)
+    // Dati registrazioni per mese
     @php
         $registrationData = [];
         for ($i = 5; $i >= 0; $i--) {

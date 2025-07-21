@@ -483,7 +483,7 @@ function validateDepositAmount(clientId) {
 
 // Aggiorna lo script esistente per includere la validazione deposito
 document.addEventListener('DOMContentLoaded', function() {
-    // VALIDAZIONE DEPOSITI - Trova tutti i modal di deposito
+    // Trova tutti i modal di deposito
     document.querySelectorAll('[id^="depositModal"]').forEach(function(modal) {
         const clientId = modal.id.replace('depositModal', '');
         const amountInput = document.getElementById(`amount${clientId}`);
@@ -525,7 +525,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            // Previeni submit del form solo per il limite €50,000 (mantiene validazione nativa per altri errori)
+            // Previeni submit del form solo per il limite €50000 (mantiene validazione nativa per altri errori)
             const form = modal.querySelector('form');
             if (form) {
                 form.addEventListener('submit', function(e) {
@@ -548,7 +548,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // VALIDAZIONE BONIFICI - Codice esistente (mantieni uguale)
+    // Codice esistente 
     document.querySelectorAll('[id^="transferModal"]').forEach(function(modal) {
         const clientId = modal.id.replace('transferModal', '');
         const ibanInput = document.getElementById('recipient_iban' + clientId);
@@ -556,7 +556,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const submitBtn = modal.querySelector('button[type="submit"]');
         
         if (ibanInput && lengthCounter && submitBtn) {
-            // Formattazione e validazione IBAN - IDENTICA A "DETTAGLI CLIENTE"
+            // Formattazione e validazione IBAN
             ibanInput.addEventListener('input', function(e) {
                 let value = e.target.value.replace(/\s/g, '').toUpperCase();
                 let formatted = value.replace(/(.{4})/g, '$1 ').trim();

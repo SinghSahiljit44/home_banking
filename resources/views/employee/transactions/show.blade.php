@@ -1,4 +1,3 @@
-{{-- resources/views/employee/transactions/show.blade.php --}}
 @extends('layouts.bootstrap')
 
 @section('title', 'Dettagli Transazione')

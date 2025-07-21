@@ -20,11 +20,10 @@ use App\Http\Controllers\Employee\EmployeeClientController;
 // Homepage
 Route::view('/', 'index');
 
-// FUNZIONE HELPER SEMPLIFICATA per progetto universitario
+// FUNZIONE HELPER 
 if (!function_exists('clearSecurityData')) {
     function clearSecurityData(Request $request): void
     {
-        // Solo i flag essenziali per il progetto universitario
         $securityKeys = [
             'forced_logout_redirect',
             'forced_logout_reason',
@@ -52,9 +51,9 @@ Route::middleware(['web'])->group(function () {
     Route::view('/login-cliente', 'login-cliente')->name('login.cliente');
     Route::view('/login-lavoratore', 'login-lavoratore')->name('login.lavoratore');
     
-    // Login cliente semplificato
+    // Login cliente 
     Route::post('/login-cliente', function (Request $request) {
-        // Pulizia semplificata
+
         clearSecurityData($request);
         $request->session()->regenerate(true);
         
@@ -93,9 +92,9 @@ Route::middleware(['web'])->group(function () {
         
     })->middleware('guest')->name('cliente.login.submit');
 
-    // Login lavoratore semplificato
+    // Login lavoratore 
     Route::post('/login-lavoratore', function (Request $request) {
-        // Pulizia semplificata
+
         clearSecurityData($request);
         $request->session()->regenerate(true);
         
@@ -140,7 +139,7 @@ Route::middleware(['web'])->group(function () {
     })->middleware('guest')->name('lavoratore.login.submit');
 });
 
-// DASHBOARD ROUTES - controllo ruoli semplificato
+// DASHBOARD ROUTES 
 Route::middleware(['web', 'auth'])->group(function () {
     
     // Dashboard cliente
@@ -440,7 +439,7 @@ Route::middleware(['web', 'auth', 'prevent.back', 'security.session'])->group(fu
     });
 });
 
-// ========== LOGOUT SEMPLIFICATO ==========
+// ========== LOGOUT ==========
 Route::post('/logout', function (Request $request) {
     $user = Auth::user();
     

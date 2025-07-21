@@ -340,7 +340,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Solo dati per il grafico tipi (rimuovi statusData)
+    //Dati per il grafico tipi
     const typeData = {
         transfer_in: {{ $transactions->where('type', 'transfer_in')->count() }},
         transfer_out: {{ $transactions->where('type', 'transfer_out')->count() }},
@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', function() {
         withdrawal: {{ $transactions->where('type', 'withdrawal')->count() }}
     };
 
-    // Solo Grafico Tipi (rimuovi grafico stati)
+    // Grafico Tipi 
     const typeCtx = document.getElementById('typeChart').getContext('2d');
     new Chart(typeCtx, {
         type: 'bar',
@@ -392,7 +392,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // VALIDAZIONI - RESTO DEL CODICE INVARIATO
+    // VALIDAZIONI
     
     // Funzioni di validazione date
     function validateDates() {

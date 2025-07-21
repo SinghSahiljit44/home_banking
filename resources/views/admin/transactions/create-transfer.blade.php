@@ -192,7 +192,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const amountInput = document.getElementById('amount');
     const descriptionInput = document.getElementById('description');
     
-    // Formattazione e validazione IBAN - IDENTICA A "DETTAGLI CLIENTE"
+    // Formattazione e validazione IBAN
     ibanInput.addEventListener('input', function(e) {
         let value = e.target.value.replace(/\s/g, '').toUpperCase();
         let formatted = value.replace(/(.{4})/g, '$1 ').trim();

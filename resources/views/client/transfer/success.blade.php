@@ -114,7 +114,6 @@ function downloadReceipt() {
 
 // Auto-focus per accessibilità
 document.addEventListener('DOMContentLoaded', function() {
-    // Evidenzia il codice di riferimento per facilità di copia
     const referenceCode = document.querySelector('.font-monospace');
     if (referenceCode) {
         referenceCode.addEventListener('click', function() {

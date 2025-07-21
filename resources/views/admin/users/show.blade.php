@@ -382,7 +382,7 @@
 </div>
 @endif
 
-<!-- Modal Conferma Eliminazione AGGIORNATO -->
+<!-- Modal Conferma Eliminazione -->
 @if(!$user->isAdmin())
 <div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog">

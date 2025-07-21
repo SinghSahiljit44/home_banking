@@ -299,7 +299,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // VALIDAZIONI DATE - LOGICA IDENTICA A TRANSAZIONI CLIENTI
+    // VALIDAZIONI DATE
     
     // Funzioni di validazione date
     function validateDates() {
@@ -331,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Auto-submit form quando cambiano i filtri (escluse le date per evitare conflitti con la validazione)
+    // Auto-submit form quando cambiano i filtri 
     const filterForm = document.querySelector('form[action*="transactions.index"]');
     if (filterForm) {
         const selectInputs = filterForm.querySelectorAll('select');

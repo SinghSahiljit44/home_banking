@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
     firstNameInput.addEventListener('blur', generateUsername);
     lastNameInput.addEventListener('blur', generateUsername);
     
-    // NUOVE VALIDAZIONI EMAIL - IDENTICHE A "REGISTRA NUOVO CLIENTE"
+    // NUOVE VALIDAZIONI EMAIL 
     const emailInput = document.getElementById('email');
     
     // Funzione di validazione email
@@ -427,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function() {
     emailInput.addEventListener('input', validateEmailField);
     emailInput.addEventListener('blur', validateEmailField);
     
-    // NUOVE VALIDAZIONI TELEFONO - IDENTICHE A "REGISTRA NUOVO CLIENTE"
+    // NUOVE VALIDAZIONI TELEFONO 
     const phoneInput = document.getElementById('phone');
     
     phoneInput.addEventListener('input', function(e) {
@@ -501,7 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
         passwordInput.required = true;
     }
     
-    // Validazione form prima dell'invio - IDENTICA A "REGISTRA NUOVO CLIENTE"
+    // Validazione form prima dell'invio
     document.getElementById('createUserForm').addEventListener('submit', function(e) {
         let hasErrors = false;
         

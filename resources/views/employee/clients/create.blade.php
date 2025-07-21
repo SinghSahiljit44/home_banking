@@ -222,7 +222,6 @@ document.addEventListener('DOMContentLoaded', function() {
     firstNameInput.addEventListener('blur', generateUsername);
     lastNameInput.addEventListener('blur', generateUsername);
     
-    // NUOVE VALIDAZIONI EMAIL
     const emailInput = document.getElementById('email');
     
     // Funzione di validazione email
@@ -368,7 +367,6 @@ document.addEventListener('DOMContentLoaded', function() {
     emailInput.addEventListener('input', validateEmailField);
     emailInput.addEventListener('blur', validateEmailField);
     
-    // NUOVE VALIDAZIONI TELEFONO
     const phoneInput = document.getElementById('phone');
     
     phoneInput.addEventListener('input', function(e) {
