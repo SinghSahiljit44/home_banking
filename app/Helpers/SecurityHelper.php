@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 class SecurityHelper
 {
     /**
-     * Esegue logout di sicurezza
+     * Esegue un logout di sicurezza
      */
     public static function forceSecureLogout(Request $request, string $reason = 'security', string $message = null): void
     {
@@ -50,7 +50,6 @@ class SecurityHelper
     {
         session()->put('forced_logout_redirect', true);
         session()->put('forced_logout_reason', $reason);
-        session()->put('forced_logout_timestamp', now()->timestamp);
         
         if ($message) {
             session()->put('security_message', $message);

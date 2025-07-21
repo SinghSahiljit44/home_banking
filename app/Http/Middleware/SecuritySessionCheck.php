@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 class SecuritySessionCheck
 {
     /**
-     * Handle an incoming request 
+     * Handle an incoming request
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -22,20 +22,13 @@ class SecuritySessionCheck
         
         // Controlla logout forzato
         if (session()->has('forced_logout_redirect')) {
-            $timestamp = session('forced_logout_timestamp', 0);
-            
-            // Se sono passati più di 5 minuti, rimuovi il flag
-            if (now()->timestamp - $timestamp > 300) {
+            // Se sta tentando di accedere a pagine protette dopo logout forzato
+            if ($this->isProtectedRoute($request) && !Auth::check()) {
                 $this->clearSecurityFlags($request);
-            } else {
-                // Se sta tentando di accedere a pagine protette
-                if ($this->isProtectedRoute($request) && !Auth::check()) {
-                    $this->clearSecurityFlags($request);
-                    
-                    return redirect()->route('login')
-                        ->withErrors(['security' => 'Non è possibile tornare indietro per motivi di sicurezza.'])
-                        ->withHeaders($this->getBasicHeaders());
-                }
+                
+                return redirect()->route('login')
+                    ->withErrors(['security' => 'Non è possibile tornare indietro per motivi di sicurezza.'])
+                    ->withHeaders($this->getBasicHeaders());
             }
         }
 
@@ -60,11 +53,10 @@ class SecuritySessionCheck
      */
     private function clearSecurityFlags(Request $request): void
     {
-        // Solo i flag essenziali per un progetto universitario
+        // Solo i flag essenziali
         $flagsToRemove = [
             'forced_logout_redirect',
-            'forced_logout_reason', 
-            'forced_logout_timestamp',
+            'forced_logout_reason',
         ];
         
         foreach ($flagsToRemove as $flag) {

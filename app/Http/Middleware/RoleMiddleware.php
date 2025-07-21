@@ -51,7 +51,7 @@ class RoleMiddleware
     }
 
     /**
-     * Header di sicurezza basilari per progetto universitario
+     * Header di sicurezza basilari
      */
     private function getBasicSecurityHeaders(): array
     {
