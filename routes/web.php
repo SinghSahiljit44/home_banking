@@ -20,55 +20,44 @@ use App\Http\Controllers\Employee\EmployeeClientController;
 // Homepage
 Route::view('/', 'index');
 
-// FUNZIONE HELPER PER PULIZIA COMPLETA SESSIONE
-if (!function_exists('clearAllSecurityData')) {
-    function clearAllSecurityData(Request $request): void
+// FUNZIONE HELPER SEMPLIFICATA per progetto universitario
+if (!function_exists('clearSecurityData')) {
+    function clearSecurityData(Request $request): void
     {
-        // Lista COMPLETA di tutti i flag e dati di sicurezza
+        // Solo i flag essenziali per il progetto universitario
         $securityKeys = [
             'forced_logout_redirect',
-            'forced_logout_reason', 
-            'forced_logout_timestamp',
-            'unauthorized_access_attempt',
-            'back_button_blocked',
-            'back_button_blocked_timestamp',
-            'access_denied_redirect',
-            'access_denied_timestamp',
+            'forced_logout_reason',
             'security_message',
             '_previous',
             '_flash',
-            'errors',
-            'url.intended'
+            'errors'
         ];
         
-        // Rimuovi tutti i dati di sicurezza
         foreach ($securityKeys as $key) {
             $request->session()->forget($key);
         }
         
-        \Log::info('Complete security cleanup performed:', [
+        \Log::info('Security cleanup performed:', [
             'ip' => $request->ip(),
-            'user_agent' => $request->userAgent(),
             'keys_cleared' => count($securityKeys)
         ]);
     }
 }
 
-// Routes per ospiti (non autenticati) - SENZA MIDDLEWARE DI SICUREZZA
+// Routes per ospiti (non autenticati)
 Route::middleware(['web'])->group(function () {
     
     Route::view('/login', 'login')->name('login');
     Route::view('/login-cliente', 'login-cliente')->name('login.cliente');
     Route::view('/login-lavoratore', 'login-lavoratore')->name('login.lavoratore');
     
-    // Gestione login cliente - COMPLETAMENTE RIPULITO
+    // Login cliente semplificato
     Route::post('/login-cliente', function (Request $request) {
-        // STEP 1: Pulizia completa prima di qualsiasi validazione
-        clearAllSecurityData($request);
-        $request->session()->flush();
+        // Pulizia semplificata
+        clearSecurityData($request);
         $request->session()->regenerate(true);
         
-        // STEP 2: Validazione
         $request->validate([
             'username' => 'required|string',
             'password' => 'required|string',
@@ -77,30 +66,24 @@ Route::middleware(['web'])->group(function () {
         $username = $request->input('username');
         $password = $request->input('password');
         
-        // STEP 3: Ricerca utente
         $user = User::where('username', $username)
                     ->where('role', 'client')
                     ->where('is_active', true)
                     ->first();
         
         if ($user && Hash::check($password, $user->password)) {
-            // STEP 4: Login pulito
             Auth::login($user, $request->filled('remember'));
             $request->session()->regenerate();
             
-            // Log successful login
-            \Log::info('Client login successful - clean session:', [
+            \Log::info('Client login successful:', [
                 'user_id' => $user->id,
                 'username' => $user->username,
                 'ip' => $request->ip(),
-                'session_cleaned' => true,
             ]);
             
-            // REDIRECT DIRETTO senza intended
             return redirect('/dashboard-cliente')->with('success', 'Accesso effettuato con successo!');
         }
         
-        // Log failed login
         \Log::warning('Client login failed:', [
             'username' => $username,
             'ip' => $request->ip(),
@@ -110,14 +93,12 @@ Route::middleware(['web'])->group(function () {
         
     })->middleware('guest')->name('cliente.login.submit');
 
-    // Gestione login lavoratore - COMPLETAMENTE RIPULITO
+    // Login lavoratore semplificato
     Route::post('/login-lavoratore', function (Request $request) {
-        // STEP 1: Pulizia completa prima di qualsiasi validazione
-        clearAllSecurityData($request);
-        $request->session()->flush();
+        // Pulizia semplificata
+        clearSecurityData($request);
         $request->session()->regenerate(true);
         
-        // STEP 2: Validazione
         $request->validate([
             'matricola' => 'required|string',
             'password' => 'required|string',
@@ -126,27 +107,22 @@ Route::middleware(['web'])->group(function () {
         $matricola = $request->input('matricola');
         $password = $request->input('password');
         
-        // STEP 3: Ricerca utente
         $user = User::where('username', $matricola)
                     ->whereIn('role', ['admin', 'employee'])
                     ->where('is_active', true)
                     ->first();
         
         if ($user && Hash::check($password, $user->password)) {
-            // STEP 4: Login pulito
             Auth::login($user, $request->filled('remember'));
             $request->session()->regenerate();
             
-            // Log successful login
-            \Log::info('Worker login successful - clean session:', [
+            \Log::info('Worker login successful:', [
                 'user_id' => $user->id,
                 'username' => $user->username,
                 'role' => $user->role,
                 'ip' => $request->ip(),
-                'session_cleaned' => true,
             ]);
             
-            // REDIRECT DIRETTO senza intended
             if ($user->isAdmin()) {
                 return redirect('/dashboard-admin')->with('success', 'Accesso effettuato con successo!');
             } else {
@@ -154,7 +130,6 @@ Route::middleware(['web'])->group(function () {
             }
         }
         
-        // Log failed login
         \Log::warning('Worker login failed:', [
             'matricola' => $matricola,
             'ip' => $request->ip(),
@@ -165,14 +140,13 @@ Route::middleware(['web'])->group(function () {
     })->middleware('guest')->name('lavoratore.login.submit');
 });
 
-// DASHBOARD ROUTES - SOLO CON MIDDLEWARE AUTH BASE (no altri middleware di sicurezza)
+// DASHBOARD ROUTES - controllo ruoli semplificato
 Route::middleware(['web', 'auth'])->group(function () {
     
-    // Dashboard cliente - CONTROLLO MINIMO
+    // Dashboard cliente
     Route::get('/dashboard-cliente', function (Request $request) {
         $user = Auth::user();
         
-        // Controllo semplice del ruolo
         if (!$user->isClient()) {
             \Log::warning('Wrong role access to client dashboard:', [
                 'user_id' => $user->id,
@@ -181,7 +155,6 @@ Route::middleware(['web', 'auth'])->group(function () {
                 'ip' => $request->ip(),
             ]);
             
-            // Logout SOLO se il ruolo è sbagliato
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -191,11 +164,10 @@ Route::middleware(['web', 'auth'])->group(function () {
         return view('dashboard-cliente');
     })->name('dashboard.cliente');
 
-    // Dashboard admin - CONTROLLO MINIMO  
+    // Dashboard admin
     Route::get('/dashboard-admin', function (Request $request) {
         $user = Auth::user();
         
-        // Controllo semplice del ruolo
         if (!$user->isAdmin()) {
             \Log::warning('Wrong role access to admin dashboard:', [
                 'user_id' => $user->id,
@@ -204,7 +176,6 @@ Route::middleware(['web', 'auth'])->group(function () {
                 'ip' => $request->ip(),
             ]);
             
-            // Logout SOLO se il ruolo è sbagliato
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -214,11 +185,10 @@ Route::middleware(['web', 'auth'])->group(function () {
         return view('dashboard-admin');
     })->name('dashboard.admin');
 
-    // Dashboard employee - CONTROLLO MINIMO
+    // Dashboard employee
     Route::get('/dashboard-employee', function (Request $request) {
         $user = Auth::user();
         
-        // Controllo semplice del ruolo
         if (!$user->isEmployee()) {
             \Log::warning('Wrong role access to employee dashboard:', [
                 'user_id' => $user->id,
@@ -227,7 +197,6 @@ Route::middleware(['web', 'auth'])->group(function () {
                 'ip' => $request->ip(),
             ]);
             
-            // Logout SOLO se il ruolo è sbagliato
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -262,7 +231,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     })->name('dashboard');
 });
 
-// TUTTE LE ALTRE ROUTES - CON MIDDLEWARE DI SICUREZZA COMPLETI
+// ROUTES CON MIDDLEWARE DI SICUREZZA
 Route::middleware(['web', 'auth', 'prevent.back', 'security.session'])->group(function () {
     
     // ========== CLIENT ROUTES ==========
@@ -424,7 +393,7 @@ Route::middleware(['web', 'auth', 'prevent.back', 'security.session'])->group(fu
             Route::post('/change-password', [ProfileController::class, 'changePassword'])->name('change-password.store');
         });
 
-        // GESTIONE CLIENTI ASSEGNATI (solo per clienti assegnati)
+        // GESTIONE CLIENTI ASSEGNATI
         Route::prefix('clients')->name('clients.')->group(function () {
             Route::get('/', [EmployeeDashboardController::class, 'clients'])->name('index');
             Route::get('/create', [EmployeeClientController::class, 'create'])->name('create');
@@ -440,12 +409,12 @@ Route::middleware(['web', 'auth', 'prevent.back', 'security.session'])->group(fu
             Route::post('/{client}/toggle-status', [EmployeeClientController::class, 'toggleClientStatus'])->name('toggle-status');
             Route::post('/{client}/remove', [EmployeeClientController::class, 'removeClient'])->name('remove');
 
-            // DEPOSITI solo per clienti assegnati (tramite gestione clienti)
+            // DEPOSITI/PRELIEVI per clienti assegnati
             Route::post('/{client}/deposit', [EmployeeClientController::class, 'deposit'])->name('deposit');
             Route::post('/{client}/withdrawal', [EmployeeClientController::class, 'withdrawal'])->name('withdrawal');
         });
 
-        // DEPOSITI UNIVERSALI (tutti i clienti) - IMPLEMENTAZIONE COMPLETA
+        // DEPOSITI UNIVERSALI (tutti i clienti)
         Route::prefix('universal')->name('universal.')->group(function () {
             Route::get('/clients', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'showAllClients'])->name('clients');
             Route::post('/clients/{client}/deposit', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'depositToAnyClient'])->name('deposit');
@@ -454,14 +423,14 @@ Route::middleware(['web', 'auth', 'prevent.back', 'security.session'])->group(fu
             Route::get('/search-clients', [App\Http\Controllers\Employee\EmployeeUniversalController::class, 'searchClients'])->name('search-clients');
         });
 
-        // TRANSAZIONI CLIENTI ASSEGNATI (solo transazioni dei clienti assegnati)
+        // TRANSAZIONI CLIENTI ASSEGNATI
         Route::prefix('transactions')->name('transactions.')->group(function () {
             Route::get('/', [EmployeeDashboardController::class, 'transactions'])->name('index');
             Route::get('/details/{id}', [EmployeeDashboardController::class, 'showTransactionDetails'])->name('details');
             Route::get('/show/{id}', [EmployeeDashboardController::class, 'showTransactionDetails'])->name('show');
         });
 
-        // RECUPERO CREDENZIALI CLIENTI ASSEGNATI (solo per clienti assegnati)
+        // RECUPERO CREDENZIALI CLIENTI ASSEGNATI
         Route::prefix('password-recovery')->name('password-recovery.')->group(function () {
             Route::get('/', [PasswordRecoveryController::class, 'index'])->name('index');
             Route::post('/generate', [PasswordRecoveryController::class, 'generatePassword'])->name('generate');
@@ -471,11 +440,10 @@ Route::middleware(['web', 'auth', 'prevent.back', 'security.session'])->group(fu
     });
 });
 
-// ========== LOGOUT ==========
+// ========== LOGOUT SEMPLIFICATO ==========
 Route::post('/logout', function (Request $request) {
     $user = Auth::user();
     
-    // Log del logout
     \Log::info('User logout:', [
         'user_id' => $user?->id,
         'username' => $user?->username,
@@ -484,42 +452,16 @@ Route::post('/logout', function (Request $request) {
     ]);
     
     Auth::logout();
-    clearAllSecurityData($request);
+    clearSecurityData($request);
     $request->session()->invalidate();
     $request->session()->regenerateToken();
     
-    // Forza la rigenerazione dell'ID di sessione
-    if ($request->hasSession()) {
-        $request->session()->migrate(true);
-    }
-    
     $response = redirect('/')->with('success', 'Logout effettuato con successo.');
     
-    // Rimuovi anche eventuali cookie di remember_me
+    // Rimuovi cookie remember_me
     if ($request->hasCookie(Auth::getRecallerName())) {
         $response = $response->withCookie(cookie()->forget(Auth::getRecallerName()));
     }
     
     return $response;
 })->name('logout');
-
-// Route per gestire i logout forzati via JavaScript
-Route::post('/force-logout', function (Request $request) {
-    if (Auth::check()) {
-        $user = Auth::user();
-        
-        \Log::info('Force logout via JavaScript:', [
-            'user_id' => $user->id,
-            'ip' => $request->ip(),
-            'reason' => $request->input('reason', 'unknown')
-        ]);
-        
-        Auth::logout();
-    }
-    
-    clearAllSecurityData($request);
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
-    
-    return response()->json(['status' => 'logged_out']);
-})->name('force.logout');
