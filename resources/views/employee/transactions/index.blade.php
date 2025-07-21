@@ -285,9 +285,21 @@
             @endforelse
 
             <!-- Paginazione -->
-            @if($transactions->hasPages())
-                <div class="d-flex justify-content-center mt-4">
-                    {{ $transactions->links() }}
+            @if($transactions->count() > 0)
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-3 gap-2">
+                    <div class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Visualizzati {{ $transactions->firstItem() ?? 0 }} - {{ $transactions->lastItem() ?? 0 }} 
+                        di {{ $transactions->total() }} transazioni
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        @if($transactions->hasPages())
+                            <small class="text-muted me-2">Pagina:</small>
+                            <nav aria-label="Paginazione transazioni">
+                                {{ $transactions->links('pagination::bootstrap-4') }}
+                            </nav>
+                        @endif
+                    </div>
                 </div>
             @endif
         </div>

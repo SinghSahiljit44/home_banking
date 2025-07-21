@@ -51,15 +51,6 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label for="status" class="form-label">Stato</label>
-                    <select class="form-select" id="status" name="status">
-                        <option value="">Tutti</option>
-                        <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>In Sospeso</option>
-                        <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Completate</option>
-                        <option value="failed" {{ request('status') === 'failed' ? 'selected' : '' }}>Fallite</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
                     <label class="form-label">&nbsp;</label>
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary" id="filter-btn">
@@ -67,18 +58,7 @@
                         </button>
                     </div>
                 </div>
-                
-                <div class="col-md-3">
-                    <label for="min_amount" class="form-label">Importo Minimo (€)</label>
-                    <input type="number" class="form-control" id="min_amount" name="min_amount" 
-                           value="{{ request('min_amount') }}" step="0.01" min="0">
-                </div>
-                <div class="col-md-3">
-                    <label for="max_amount" class="form-label">Importo Massimo (€)</label>
-                    <input type="number" class="form-control" id="max_amount" name="max_amount" 
-                           value="{{ request('max_amount') }}" step="0.01" min="0">
-                </div>
-                <div class="col-md-4">
+                <div class="col-md-2">
                     <label class="form-label">Azioni</label>
                     <div class="d-flex gap-2">
                         <a href="{{ route('admin.reports.transactions') }}" class="btn btn-secondary btn-sm">
@@ -147,17 +127,7 @@
 
     <!-- Grafico Stati Transazioni -->
     <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card bg-transparent border-light">
-                <div class="card-header">
-                    <h6><i class="fas fa-chart-pie me-2"></i>Distribuzione per Stato</h6>
-                </div>
-                <div class="card-body">
-                    <canvas id="statusChart" height="200"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
+        <div class="col-md-8 offset-md-2">
             <div class="card bg-transparent border-light">
                 <div class="card-header">
                     <h6><i class="fas fa-chart-bar me-2"></i>Distribuzione per Tipo</h6>
@@ -370,13 +340,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Dati per i grafici
-    const statusData = {
-        completed: {{ $periodStats['completed_count'] }},
-        pending: {{ $periodStats['pending_count'] }},
-        failed: {{ $periodStats['failed_count'] }}
-    };
-
+    // Solo dati per il grafico tipi (rimuovi statusData)
     const typeData = {
         transfer_in: {{ $transactions->where('type', 'transfer_in')->count() }},
         transfer_out: {{ $transactions->where('type', 'transfer_out')->count() }},
@@ -384,35 +348,7 @@ document.addEventListener('DOMContentLoaded', function() {
         withdrawal: {{ $transactions->where('type', 'withdrawal')->count() }}
     };
 
-    // Grafico Stati
-    const statusCtx = document.getElementById('statusChart').getContext('2d');
-    new Chart(statusCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Completate', 'In Sospeso', 'Fallite'],
-            datasets: [{
-                data: [statusData.completed, statusData.pending, statusData.failed],
-                backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
-                borderColor: ['#1e7e34', '#e0a800', '#c82333'],
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        color: 'white',
-                        padding: 20
-                    }
-                }
-            }
-        }
-    });
-
-    // Grafico Tipi
+    // Solo Grafico Tipi (rimuovi grafico stati)
     const typeCtx = document.getElementById('typeChart').getContext('2d');
     new Chart(typeCtx, {
         type: 'bar',
@@ -456,7 +392,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // VALIDAZIONI - LOGICA IDENTICA A TRANSAZIONI CLIENTI
+    // VALIDAZIONI - RESTO DEL CODICE INVARIATO
     
     // Funzioni di validazione date
     function validateDates() {
@@ -488,14 +424,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Auto-submit form quando cambiano i filtri (escluse le date per evitare conflitti con la validazione)
+    // Auto-submit form quando cambiano i filtri
     const filterForm = document.querySelector('form[action*="reports.transactions"]');
     if (filterForm) {
         const selectInputs = filterForm.querySelectorAll('select');
         
         selectInputs.forEach(input => {
             input.addEventListener('change', function() {
-                // Auto-submit dopo un breve delay per UX migliore
                 setTimeout(() => {
                     if (validateForm()) {
                         filterForm.submit();

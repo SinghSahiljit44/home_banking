@@ -234,6 +234,7 @@
 
 <!-- Modal Deposito -->
 @if($client->account)
+<!-- Modal Deposito con Validazione -->
 <div class="modal fade" id="depositModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content bg-dark">
@@ -246,7 +247,14 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="amount" class="form-label">Importo (€)</label>
-                        <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0.01" required>
+                        <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0.01" max="49999.99" required>
+                        <div id="deposit-amount-feedback" class="form-text text-muted">
+                            Inserisci un importo tra €0.01 e €49,999.99
+                        </div>
+                        <div id="deposit-amount-error" class="invalid-feedback" style="display: none;">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Non è possibile effettuare depositi di importo uguale o superiore a €50000
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="description" class="form-label">Descrizione</label>
@@ -255,7 +263,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-                    <button type="submit" class="btn btn-success">Deposita</button>
+                    <button type="submit" class="btn btn-success" id="deposit-submit-btn">Deposita</button>
                 </div>
             </form>
         </div>
@@ -523,6 +531,124 @@ document.getElementById('transferModal')?.addEventListener('shown.bs.modal', fun
         submitBtn.disabled = true; // Inizialmente disabilitato
     }
     validateTransferForm();
+});
+
+function validateDepositAmount() {
+    const amountInput = document.getElementById('amount');
+    const submitBtn = document.getElementById('deposit-submit-btn');
+    const errorDiv = document.getElementById('deposit-amount-error');
+    const feedbackDiv = document.getElementById('deposit-amount-feedback');
+    
+    if (!amountInput || !submitBtn) return;
+    
+    const amount = parseFloat(amountInput.value);
+    
+    // Controlla PRIMA la validità nativa del campo (mantiene gli hint del browser)
+    const isNativelyValid = amountInput.validity.valid;
+    const nativeValidationMessage = amountInput.validationMessage;
+    
+    // Reset classi CSS solo se non ci sono errori nativi
+    if (isNativelyValid) {
+        amountInput.classList.remove('is-invalid');
+    }
+    
+    if (!isNativelyValid) {
+        // Errore di validazione nativa (step, min, max, etc.) - Mostra hint nativi
+        feedbackDiv.className = 'form-text text-warning';
+        feedbackDiv.innerHTML = `<i class="fas fa-info-circle me-1"></i>${nativeValidationMessage}`;
+        errorDiv.style.display = 'none';
+        submitBtn.disabled = true;
+        submitBtn.classList.add('disabled');
+        return; // Esce presto per lasciare che il browser gestisca la validazione
+    } else if (!amount || amount <= 0) {
+        // Campo vuoto
+        feedbackDiv.className = 'form-text text-muted';
+        feedbackDiv.textContent = 'Inserisci un importo tra €0.01 e €49,999.99';
+        errorDiv.style.display = 'none';
+        submitBtn.disabled = true;
+        submitBtn.classList.add('disabled');
+    } else if (amount >= 50000) {
+        // Importo troppo alto - ERRORE CUSTOMIZZATO
+        amountInput.classList.add('is-invalid');
+        errorDiv.style.display = 'block';
+        feedbackDiv.style.display = 'none';
+        submitBtn.disabled = true;
+        submitBtn.classList.add('disabled');
+    } else if (amount >= 0.01 && amount < 50000) {
+        // Importo valido - OK
+        amountInput.classList.add('is-valid');
+        errorDiv.style.display = 'none';
+        feedbackDiv.className = 'form-text text-success';
+        feedbackDiv.style.display = 'block';
+        feedbackDiv.innerHTML = `<i class="fas fa-check-circle me-1"></i>Importo valido: €${amount.toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('disabled');
+    }
+}
+
+// Event listener per validazione in tempo reale
+document.getElementById('amount')?.addEventListener('input', validateDepositAmount);
+document.getElementById('amount')?.addEventListener('change', validateDepositAmount);
+document.getElementById('amount')?.addEventListener('invalid', validateDepositAmount); // Per hint nativi
+
+// Inizializza validazione quando si apre il modal deposito
+document.getElementById('depositModal')?.addEventListener('shown.bs.modal', function() {
+    const submitBtn = document.getElementById('deposit-submit-btn');
+    const amountInput = document.getElementById('amount');
+    
+    if (submitBtn) {
+        submitBtn.disabled = true; // Inizialmente disabilitato
+        submitBtn.classList.add('disabled');
+    }
+    
+    if (amountInput) {
+        amountInput.value = ''; // Reset campo
+        amountInput.focus(); // Focus automatico
+    }
+    
+    validateDepositAmount();
+});
+
+// Reset quando si chiude il modal
+document.getElementById('depositModal')?.addEventListener('hidden.bs.modal', function() {
+    const amountInput = document.getElementById('amount');
+    const errorDiv = document.getElementById('deposit-amount-error');
+    const feedbackDiv = document.getElementById('deposit-amount-feedback');
+    
+    if (amountInput) {
+        amountInput.value = '';
+        amountInput.classList.remove('is-invalid', 'is-valid');
+    }
+    
+    if (errorDiv) {
+        errorDiv.style.display = 'none';
+    }
+    
+    if (feedbackDiv) {
+        feedbackDiv.className = 'form-text text-muted';
+        feedbackDiv.textContent = 'Inserisci un importo tra €0.01 e €49,999.99';
+        feedbackDiv.style.display = 'block';
+    }
+});
+
+// Previeni submit del form solo per il limite €50,000 (mantiene validazione nativa per altri errori)
+document.querySelector('#depositModal form')?.addEventListener('submit', function(e) {
+    const amountInput = document.getElementById('amount');
+    const amount = parseFloat(amountInput.value);
+    
+    // Solo blocca se supera €50,000, altrimenti lascia che il browser gestisca gli altri errori
+    if (amount >= 50000) {
+        e.preventDefault();
+        validateDepositAmount();
+        return false;
+    }
+    
+    // Per altri errori di validazione, lascia che il browser mostri i suoi hint
+    if (!amountInput.validity.valid) {
+        // Non fare preventDefault - lascia che il browser mostri gli hint nativi
+        validateDepositAmount();
+        return false;
+    }
 });
 </script>
 @endsection
