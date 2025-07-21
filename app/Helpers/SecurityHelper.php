@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 class SecurityHelper
 {
     /**
-     * Esegue un logout di sicurezza semplificato per progetto universitario
+     * Esegue logout di sicurezza
      */
     public static function forceSecureLogout(Request $request, string $reason = 'security', string $message = null): void
     {
