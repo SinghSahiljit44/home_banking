@@ -20,142 +20,55 @@ use App\Http\Controllers\Employee\EmployeeClientController;
 // Homepage
 Route::view('/', 'index');
 
-// Route speciali per gestire logout forzato
-Route::middleware(['web', 'prevent.back.logout'])->group(function () {
+// FUNZIONE HELPER PER PULIZIA COMPLETA SESSIONE
+if (!function_exists('clearAllSecurityData')) {
+    function clearAllSecurityData(Request $request): void
+    {
+        // Lista COMPLETA di tutti i flag e dati di sicurezza
+        $securityKeys = [
+            'forced_logout_redirect',
+            'forced_logout_reason', 
+            'forced_logout_timestamp',
+            'unauthorized_access_attempt',
+            'back_button_blocked',
+            'back_button_blocked_timestamp',
+            'access_denied_redirect',
+            'access_denied_timestamp',
+            'security_message',
+            '_previous',
+            '_flash',
+            'errors',
+            'url.intended'
+        ];
+        
+        // Rimuovi tutti i dati di sicurezza
+        foreach ($securityKeys as $key) {
+            $request->session()->forget($key);
+        }
+        
+        \Log::info('Complete security cleanup performed:', [
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'keys_cleared' => count($securityKeys)
+        ]);
+    }
+}
+
+// Routes per ospiti (non autenticati) - SENZA MIDDLEWARE DI SICUREZZA
+Route::middleware(['web'])->group(function () {
     
-    // Intercetta tentativi di accesso a dashboard dopo logout forzato
-    Route::get('/dashboard-admin', function (Request $request) {
-        if (!Auth::check()) {
-            \Log::warning('Unauthorized dashboard access attempt:', [
-                'attempted_dashboard' => 'admin',
-                'ip' => $request->ip(),
-                'referer' => $request->header('referer'),
-                'has_forced_logout_flag' => session()->has('forced_logout_redirect')
-            ]);
-            
-            // Pulisci sessione
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-            
-            return redirect()->route('login')
-                ->withErrors(['security' => 'Accesso negato. Non è possibile accedere a questa sezione.'])
-                ->withHeaders([
-                    'Cache-Control' => 'no-cache, no-store, max-age=0, must-revalidate',
-                    'Clear-Site-Data' => '"cache", "storage"'
-                ]);
-        }
-        
-        $user = Auth::user();
-        
-        if (!$user->isAdmin()) {
-            \Log::warning('Unauthorized admin dashboard access:', [
-                'user_id' => $user->id,
-                'user_role' => $user->role,
-                'ip' => $request->ip(),
-            ]);
-            
-            Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-            
-            return redirect()->route('login')
-                ->withErrors(['access' => 'Accesso non autorizzato.']);
-        }
-        
-        return view('dashboard-admin');
-    })->name('dashboard.admin');
-
-    Route::get('/dashboard-employee', function (Request $request) {
-        if (!Auth::check()) {
-            \Log::warning('Unauthorized dashboard access attempt:', [
-                'attempted_dashboard' => 'employee',
-                'ip' => $request->ip(),
-                'referer' => $request->header('referer'),
-                'has_forced_logout_flag' => session()->has('forced_logout_redirect')
-            ]);
-            
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-            
-            return redirect()->route('login')
-                ->withErrors(['security' => 'Accesso negato. Non è possibile accedere a questa sezione.'])
-                ->withHeaders([
-                    'Cache-Control' => 'no-cache, no-store, max-age=0, must-revalidate',
-                    'Clear-Site-Data' => '"cache", "storage"'
-                ]);
-        }
-        
-        $user = Auth::user();
-        
-        if (!$user->isEmployee()) {
-            \Log::warning('Unauthorized employee dashboard access:', [
-                'user_id' => $user->id,
-                'user_role' => $user->role,
-                'ip' => $request->ip(),
-            ]);
-            
-            Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-            
-            return redirect()->route('login')
-                ->withErrors(['access' => 'Accesso non autorizzato.']);
-        }
-        
-        return view('dashboard-employee');
-    })->name('dashboard.employee');
-
-    Route::get('/dashboard-cliente', function (Request $request) {
-        if (!Auth::check()) {
-            \Log::warning('Unauthorized dashboard access attempt:', [
-                'attempted_dashboard' => 'client',
-                'ip' => $request->ip(),
-                'referer' => $request->header('referer'),
-                'has_forced_logout_flag' => session()->has('forced_logout_redirect')
-            ]);
-            
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-            
-            return redirect()->route('login')
-                ->withErrors(['security' => 'Accesso negato. Non è possibile accedere a questa sezione.'])
-                ->withHeaders([
-                    'Cache-Control' => 'no-cache, no-store, max-age=0, must-revalidate',
-                    'Clear-Site-Data' => '"cache", "storage"'
-                ]);
-        }
-        
-        $user = Auth::user();
-        
-        if (!$user->isClient()) {
-            \Log::warning('Unauthorized client dashboard access:', [
-                'user_id' => $user->id,
-                'user_role' => $user->role,
-                'ip' => $request->ip(),
-            ]);
-            
-            Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-            
-            return redirect()->route('login')
-                ->withErrors(['access' => 'Accesso non autorizzato.']);
-        }
-        
-        return view('dashboard-cliente');
-    })->name('dashboard.cliente');
-});
-
-// Routes per ospiti (non autenticati)
-Route::middleware('guest')->group(function () {
-    
-    // AGGIUNGI QUESTE ROUTE CON NOMI
-    Route::view('/login', 'login')->name('login'); // Route principale login
+    Route::view('/login', 'login')->name('login');
     Route::view('/login-cliente', 'login-cliente')->name('login.cliente');
     Route::view('/login-lavoratore', 'login-lavoratore')->name('login.lavoratore');
     
-    // Gestione login cliente
+    // Gestione login cliente - COMPLETAMENTE RIPULITO
     Route::post('/login-cliente', function (Request $request) {
+        // STEP 1: Pulizia completa prima di qualsiasi validazione
+        clearAllSecurityData($request);
+        $request->session()->flush();
+        $request->session()->regenerate(true);
+        
+        // STEP 2: Validazione
         $request->validate([
             'username' => 'required|string',
             'password' => 'required|string',
@@ -164,36 +77,47 @@ Route::middleware('guest')->group(function () {
         $username = $request->input('username');
         $password = $request->input('password');
         
+        // STEP 3: Ricerca utente
         $user = User::where('username', $username)
                     ->where('role', 'client')
                     ->where('is_active', true)
                     ->first();
         
         if ($user && Hash::check($password, $user->password)) {
+            // STEP 4: Login pulito
             Auth::login($user, $request->filled('remember'));
             $request->session()->regenerate();
             
             // Log successful login
-            \Log::info('Client login successful:', [
+            \Log::info('Client login successful - clean session:', [
                 'user_id' => $user->id,
                 'username' => $user->username,
                 'ip' => $request->ip(),
+                'session_cleaned' => true,
             ]);
             
-            return redirect()->intended(route('dashboard.cliente'))->with('success', 'Accesso effettuato con successo!');
+            // REDIRECT DIRETTO senza intended
+            return redirect('/dashboard-cliente')->with('success', 'Accesso effettuato con successo!');
         }
         
-        // Log failed login attempt
+        // Log failed login
         \Log::warning('Client login failed:', [
             'username' => $username,
             'ip' => $request->ip(),
         ]);
         
         return back()->withErrors(['login' => 'Credenziali non valide o account non attivo.'])->withInput($request->only('username'));
-    })->name('cliente.login.submit');
+        
+    })->middleware('guest')->name('cliente.login.submit');
 
-    // Gestione login lavoratore (admin/employee)
+    // Gestione login lavoratore - COMPLETAMENTE RIPULITO
     Route::post('/login-lavoratore', function (Request $request) {
+        // STEP 1: Pulizia completa prima di qualsiasi validazione
+        clearAllSecurityData($request);
+        $request->session()->flush();
+        $request->session()->regenerate(true);
+        
+        // STEP 2: Validazione
         $request->validate([
             'matricola' => 'required|string',
             'password' => 'required|string',
@@ -202,103 +126,112 @@ Route::middleware('guest')->group(function () {
         $matricola = $request->input('matricola');
         $password = $request->input('password');
         
+        // STEP 3: Ricerca utente
         $user = User::where('username', $matricola)
                     ->whereIn('role', ['admin', 'employee'])
                     ->where('is_active', true)
                     ->first();
         
         if ($user && Hash::check($password, $user->password)) {
+            // STEP 4: Login pulito
             Auth::login($user, $request->filled('remember'));
             $request->session()->regenerate();
             
             // Log successful login
-            \Log::info('Worker login successful:', [
+            \Log::info('Worker login successful - clean session:', [
                 'user_id' => $user->id,
                 'username' => $user->username,
                 'role' => $user->role,
                 'ip' => $request->ip(),
+                'session_cleaned' => true,
             ]);
             
+            // REDIRECT DIRETTO senza intended
             if ($user->isAdmin()) {
-                return redirect()->intended(route('dashboard.admin'))->with('success', 'Accesso effettuato con successo!');
+                return redirect('/dashboard-admin')->with('success', 'Accesso effettuato con successo!');
             } else {
-                return redirect()->intended(route('dashboard.employee'))->with('success', 'Accesso effettuato con successo!');
+                return redirect('/dashboard-employee')->with('success', 'Accesso effettuato con successo!');
             }
         }
         
-        // Log failed login attempt
+        // Log failed login
         \Log::warning('Worker login failed:', [
             'matricola' => $matricola,
             'ip' => $request->ip(),
         ]);
         
         return back()->withErrors(['login' => 'Credenziali non valide o account non attivo.'])->withInput($request->only('matricola'));
-    })->name('lavoratore.login.submit');
+        
+    })->middleware('guest')->name('lavoratore.login.submit');
 });
 
-// Middleware per verificare la sicurezza di accesso alle dashboard
-Route::middleware(['web', 'auth', 'prevent.back', 'security.session', 'prevent.back.logout'])->group(function () {
+// DASHBOARD ROUTES - SOLO CON MIDDLEWARE AUTH BASE (no altri middleware di sicurezza)
+Route::middleware(['web', 'auth'])->group(function () {
     
-    // ========== DASHBOARD ROUTES ==========
-    
-    // Dashboard cliente - con doppio controllo di sicurezza
+    // Dashboard cliente - CONTROLLO MINIMO
     Route::get('/dashboard-cliente', function (Request $request) {
         $user = Auth::user();
         
-        if (!$user || !$user->isClient()) {
-            \Log::warning('Unauthorized dashboard access attempt:', [
-                'user_id' => $user?->id,
-                'user_role' => $user?->role,
-                'attempted_dashboard' => 'client',
+        // Controllo semplice del ruolo
+        if (!$user->isClient()) {
+            \Log::warning('Wrong role access to client dashboard:', [
+                'user_id' => $user->id,
+                'user_role' => $user->role,
+                'expected_role' => 'client',
                 'ip' => $request->ip(),
             ]);
             
+            // Logout SOLO se il ruolo è sbagliato
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
-            return redirect('/login')->withErrors(['access' => 'Accesso non autorizzato. Disconnesso per sicurezza.']);
+            return redirect('/login')->withErrors(['access' => 'Ruolo non autorizzato per questa area.']);
         }
         
         return view('dashboard-cliente');
     })->name('dashboard.cliente');
 
-    // Dashboard admin - con doppio controllo di sicurezza
+    // Dashboard admin - CONTROLLO MINIMO  
     Route::get('/dashboard-admin', function (Request $request) {
         $user = Auth::user();
         
-        if (!$user || !$user->isAdmin()) {
-            \Log::warning('Unauthorized admin dashboard access attempt:', [
-                'user_id' => $user?->id,
-                'user_role' => $user?->role,
-                'attempted_dashboard' => 'admin',
+        // Controllo semplice del ruolo
+        if (!$user->isAdmin()) {
+            \Log::warning('Wrong role access to admin dashboard:', [
+                'user_id' => $user->id,
+                'user_role' => $user->role,
+                'expected_role' => 'admin',
                 'ip' => $request->ip(),
             ]);
             
+            // Logout SOLO se il ruolo è sbagliato
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
-            return redirect('/login')->withErrors(['access' => 'Accesso non autorizzato. Disconnesso per sicurezza.']);
+            return redirect('/login')->withErrors(['access' => 'Ruolo non autorizzato per questa area.']);
         }
         
         return view('dashboard-admin');
     })->name('dashboard.admin');
 
-    // Dashboard employee - con doppio controllo di sicurezza
+    // Dashboard employee - CONTROLLO MINIMO
     Route::get('/dashboard-employee', function (Request $request) {
         $user = Auth::user();
         
-        if (!$user || !$user->isEmployee()) {
-            \Log::warning('Unauthorized employee dashboard access attempt:', [
-                'user_id' => $user?->id,
-                'user_role' => $user?->role,
-                'attempted_dashboard' => 'employee',
+        // Controllo semplice del ruolo
+        if (!$user->isEmployee()) {
+            \Log::warning('Wrong role access to employee dashboard:', [
+                'user_id' => $user->id,
+                'user_role' => $user->role,
+                'expected_role' => 'employee',
                 'ip' => $request->ip(),
             ]);
             
+            // Logout SOLO se il ruolo è sbagliato
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
-            return redirect('/login')->withErrors(['access' => 'Accesso non autorizzato. Disconnesso per sicurezza.']);
+            return redirect('/login')->withErrors(['access' => 'Ruolo non autorizzato per questa area.']);
         }
         
         return view('dashboard-employee');
@@ -327,7 +260,11 @@ Route::middleware(['web', 'auth', 'prevent.back', 'security.session', 'prevent.b
         Auth::logout();
         return redirect('/login')->withErrors(['access' => 'Ruolo utente non riconosciuto.']);
     })->name('dashboard');
+});
 
+// TUTTE LE ALTRE ROUTES - CON MIDDLEWARE DI SICUREZZA COMPLETI
+Route::middleware(['web', 'auth', 'prevent.back', 'security.session'])->group(function () {
+    
     // ========== CLIENT ROUTES ==========
     
     Route::middleware(['role:client'])->prefix('client')->name('client.')->group(function () {
@@ -547,6 +484,7 @@ Route::post('/logout', function (Request $request) {
     ]);
     
     Auth::logout();
+    clearAllSecurityData($request);
     $request->session()->invalidate();
     $request->session()->regenerateToken();
     
@@ -565,7 +503,7 @@ Route::post('/logout', function (Request $request) {
     return $response;
 })->name('logout');
 
-// Aggiunge anche una route per gestire i logout forzati via JavaScript
+// Route per gestire i logout forzati via JavaScript
 Route::post('/force-logout', function (Request $request) {
     if (Auth::check()) {
         $user = Auth::user();
@@ -579,6 +517,7 @@ Route::post('/force-logout', function (Request $request) {
         Auth::logout();
     }
     
+    clearAllSecurityData($request);
     $request->session()->invalidate();
     $request->session()->regenerateToken();
     

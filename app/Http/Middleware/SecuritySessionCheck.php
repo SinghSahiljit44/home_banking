@@ -15,6 +15,12 @@ class SecuritySessionCheck
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // SE È UN TENTATIVO DI LOGIN, PULISCI I FLAG DI SICUREZZA
+        if ($this->isLoginAttempt($request)) {
+            $this->clearAllSecurityFlags($request);
+            return $next($request);
+        }
+        
         // Controlla se c'è un flag di logout forzato nella sessione
         if (session()->has('forced_logout_redirect')) {
             $reason = session('forced_logout_reason', 'general');
@@ -22,7 +28,7 @@ class SecuritySessionCheck
             
             // Se sono passati più di 5 minuti, rimuovi il flag
             if (now()->timestamp - $timestamp > 300) {
-                session()->forget(['forced_logout_redirect', 'forced_logout_reason', 'forced_logout_timestamp']);
+                $this->clearAllSecurityFlags($request);
             } else {
                 // Se l'utente sta tentando di accedere a una pagina protetta
                 if ($this->isProtectedRoute($request) && !Auth::check()) {
@@ -39,8 +45,7 @@ class SecuritySessionCheck
                     ]);
 
                     // Pulisci completamente la sessione
-                    session()->flush();
-                    session()->regenerate(true);
+                    $this->clearAllSecurityFlags($request);
                     
                     // Reindirizza con messaggio specifico
                     $message = $this->getMessageForReason($reason);
@@ -63,6 +68,53 @@ class SecuritySessionCheck
         }
 
         return $next($request);
+    }
+
+    /**
+     * Verifica se è un tentativo di login
+     */
+    private function isLoginAttempt(Request $request): bool
+    {
+        $uri = $request->path();
+        return $request->isMethod('POST') && (
+            $uri === 'login-cliente' || 
+            $uri === 'login-lavoratore' ||
+            str_contains($uri, 'login')
+        );
+    }
+
+    /**
+     * Pulisce TUTTI i flag di sicurezza dalla sessione
+     */
+    private function clearAllSecurityFlags(Request $request): void
+    {
+        $flagsToRemove = [
+            'forced_logout_redirect',
+            'forced_logout_reason', 
+            'forced_logout_timestamp',
+            'unauthorized_access_attempt',
+            'back_button_blocked',
+            'back_button_blocked_timestamp',
+            'access_denied_redirect',
+            'access_denied_timestamp',
+            'security_message'
+        ];
+        
+        $hadFlags = false;
+        foreach ($flagsToRemove as $flag) {
+            if ($request->session()->has($flag)) {
+                $hadFlags = true;
+                $request->session()->forget($flag);
+            }
+        }
+        
+        if ($hadFlags) {
+            \Log::info('All security flags cleared:', [
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'action' => 'security_cleanup'
+            ]);
+        }
     }
 
     /**
@@ -130,11 +182,6 @@ class SecuritySessionCheck
         if ($request->hasSession()) {
             $request->session()->migrate(true);
         }
-
-        // Imposta flag per prevenire ulteriori tentativi
-        session()->put('access_denied_redirect', true);
-        session()->put('access_denied_timestamp', now()->timestamp);
-        session()->save();
     }
 
     /**
