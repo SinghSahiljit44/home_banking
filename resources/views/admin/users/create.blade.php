@@ -301,6 +301,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Parte locale non può essere vuota
         if (!localPart || localPart.length === 0) return false;
+
+        if (localPart.endsWith('.')) return false;
         
         // Parte dominio non può essere vuota
         if (!domainPart || domainPart.length === 0) return false;
@@ -343,6 +345,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!localPart) {
             return 'Inserisci la parte prima della @';
         }
+
+        if (localPart.endsWith('.')) {
+            return 'L\'email non può avere un punto prima della @';
+        }
         
         if (!domainPart) {
             return 'Inserisci il dominio dopo la @';
@@ -382,8 +388,12 @@ document.addEventListener('DOMContentLoaded', function() {
         errorDiv.textContent = message;
         errorDiv.className = 'invalid-feedback d-block';
         errorDiv.style.display = 'block';
-        emailInput.classList.add('is-invalid');
+        
         emailInput.classList.remove('is-valid');
+        emailInput.classList.add('is-invalid');
+        
+        // Imposta anche l'errore nativo del browser
+        emailInput.setCustomValidity(message);
     }
 
     function clearEmailError() {
@@ -391,9 +401,15 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (errorDiv) {
             errorDiv.style.display = 'none';
+            errorDiv.textContent = ''; // Pulisci anche il testo
         }
+        
+        // Rimuovi classe errore e aggiungi classe valida
         emailInput.classList.remove('is-invalid');
         emailInput.classList.add('is-valid');
+        
+        // Rimuovi anche eventuali errori nativi del browser
+        emailInput.setCustomValidity('');
     }
     
     function createEmailErrorDiv() {
@@ -407,11 +423,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Funzione di validazione email
     function validateEmailField() {
-        const email = emailInput.value;
+        const email = emailInput.value.trim(); // Aggiungi trim() qui
         
         if (!email) {
-            clearEmailError();
+            // Campo vuoto - rimuovi tutti gli stili e messaggi
+            const errorDiv = document.getElementById('email-error');
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+                errorDiv.textContent = ''; // Pulisci anche il testo
+            }
             emailInput.classList.remove('is-valid', 'is-invalid');
+            emailInput.setCustomValidity(''); // Rimuovi errori nativi
             return;
         }
 
@@ -419,6 +441,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const errorMessage = getEmailErrorMessage(email);
             showEmailError(errorMessage);
         } else {
+            // Email valida - rimuovi errori e aggiungi classe valida
             clearEmailError();
         }
     }
@@ -426,6 +449,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listeners per email
     emailInput.addEventListener('input', validateEmailField);
     emailInput.addEventListener('blur', validateEmailField);
+    emailInput.addEventListener('change', validateEmailField)
     
     // NUOVE VALIDAZIONI TELEFONO 
     const phoneInput = document.getElementById('phone');
@@ -506,12 +530,15 @@ document.addEventListener('DOMContentLoaded', function() {
         let hasErrors = false;
         
         // Verifica validità email
-        const email = emailInput.value.trim();
-        if (!validateEmail(email)) {
+        const email = emailInput.value.trim(); // Aggiungi trim()
+        if (email && !validateEmail(email)) { // Controlla solo se l'email non è vuota
             e.preventDefault();
             const errorMessage = getEmailErrorMessage(email);
             showEmailError(errorMessage);
             hasErrors = true;
+        } else if (email && validateEmail(email)) {
+            // Se l'email è valida, assicurati che non ci siano errori visualizzati
+            clearEmailError();
         }
         
         // Verifica validità telefono se compilato
@@ -529,7 +556,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.stopPropagation();
             
             // Focus sul primo campo con errore
-            if (!validateEmail(email)) {
+            if (!validateEmail(email.trim())) {
                 emailInput.focus();
             }
             

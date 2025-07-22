@@ -205,6 +205,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Parte locale non può essere vuota
         if (!localPart || localPart.length === 0) return false;
+
+        if (localPart.endsWith('.')) return false;
         
         // Parte dominio non può essere vuota
         if (!domainPart || domainPart.length === 0) return false;
@@ -298,6 +300,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!localPart) {
             return 'Inserisci la parte prima della @';
+        }
+
+        if (localPart.endsWith('.')) {
+            return 'L\'email non può avere un punto prima della @';
         }
         
         if (!domainPart) {

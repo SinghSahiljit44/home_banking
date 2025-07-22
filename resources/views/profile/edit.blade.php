@@ -198,6 +198,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Parte locale non può essere vuota
         if (!localPart || localPart.length === 0) return false;
         
+        // La parte locale non può terminare con un punto 
+        if (localPart.endsWith('.')) return false;
+        
         // Parte dominio non può essere vuota
         if (!domainPart || domainPart.length === 0) return false;
         
@@ -219,6 +222,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         return true;
     }
+
 
     // Funzione di validazione telefono
     function validatePhone(phone) {
@@ -292,6 +296,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return 'Inserisci la parte prima della @';
         }
         
+        if (localPart.endsWith('.')) {
+            return 'L\'email non può avere un punto prima della @';
+        }
+        
         if (!domainPart) {
             return 'Inserisci il dominio dopo la @';
         }
@@ -322,6 +330,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         return 'Inserisci un indirizzo email valido (es. nome@dominio.com)';
     }
+
 
     // Funzione per determinare il messaggio di errore telefono
     function getPhoneErrorMessage(phone) {

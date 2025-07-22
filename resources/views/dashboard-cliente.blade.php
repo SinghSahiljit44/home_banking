@@ -203,16 +203,16 @@
                 <div class="card-body">
                     <div class="list-group list-group-flush bg-transparent">
                         <a href="#" class="list-group-item list-group-item-action bg-transparent text-white border-secondary disabled">
-                            <i class="fas fa-phone me-2"></i>Contatta l'Assistenza
+                            <i class="fas fa-phone me-2"></i>Contatta l'Assistenza: 030-946-1548
                         </a>
                         <a href="#" class="list-group-item list-group-item-action bg-transparent text-white border-secondary disabled">
-                            <i class="fas fa-map-marker-alt me-2"></i>Trova Filiale
+                            <i class="fas fa-map-marker-alt me-2"></i>Indirizzo: Via Europa 17, Brescia, BS, 25123
                         </a>
                         <a href="#" class="list-group-item list-group-item-action bg-transparent text-white border-secondary disabled">
-                            <i class="fas fa-download me-2"></i>App Mobile
+                            <i class="fas fa-download me-2"></i>App Mobile: https://home_banking/download
                         </a>
                         <a href="#" class="list-group-item list-group-item-action bg-transparent text-white border-secondary disabled">
-                            <i class="fas fa-shield-alt me-2"></i>Sicurezza
+                            <i class="fas fa-shield-alt me-2"></i>Sicurezza: 030-156-2893
                         </a>
                     </div>
                 </div>

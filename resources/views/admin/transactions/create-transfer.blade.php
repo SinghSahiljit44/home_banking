@@ -59,15 +59,16 @@
                             <div class="col-md-6 mb-3">
                                 <label for="recipient_iban" class="form-label">IBAN Beneficiario *</label>
                                 <input type="text" 
-                                       class="form-control @error('recipient_iban') is-invalid @enderror" 
-                                       id="recipient_iban" 
-                                       name="recipient_iban" 
-                                       value="{{ old('recipient_iban') }}" 
-                                       placeholder="IT60 X054 2811 1010 0000 0123 456"
-                                       maxlength="34"
-                                       required>
+                                    class="form-control @error('recipient_iban') is-invalid @enderror" 
+                                    id="recipient_iban" 
+                                    name="recipient_iban" 
+                                    value="{{ old('recipient_iban') }}" 
+                                    placeholder="IT60 X054 2811 1010 0000 0123 456"
+                                    maxlength="34"
+                                    required>
                                 <div class="form-text">
-                                    Inserisci l'IBAN del beneficiario
+                                    Inserisci l'IBAN del beneficiario<br>
+                                    <small id="iban-length" class="text-muted">Caratteri inseriti (ne servono 27 per un iban italiano valido): 0</small>
                                 </div>
                                 @error('recipient_iban')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -192,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const amountInput = document.getElementById('amount');
     const descriptionInput = document.getElementById('description');
     
-    // Formattazione e validazione IBAN
+    // VALIDAZIONE IBAN IDENTICA A "DETTAGLI CLIENTE"
     ibanInput.addEventListener('input', function(e) {
         let value = e.target.value.replace(/\s/g, '').toUpperCase();
         let formatted = value.replace(/(.{4})/g, '$1 ').trim();
@@ -200,18 +201,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         validateTransferForm();
     });
-    
-    // Aggiorna riepilogo in tempo reale
-    [beneficiaryInput, amountInput, descriptionInput].forEach(input => {
-        input.addEventListener('input', updateSummary);
-    });
-    
-    // Funzione di validazione identica a "Dettagli Cliente"
+
     function validateTransferForm() {
-        const submitBtn = document.getElementById('submitBtn');
-        
-        if (!ibanInput || !submitBtn) return;
-        
         const iban = ibanInput.value.replace(/\s/g, '');
         const clientIban = '{{ $client->account->iban ?? "" }}'.replace(/\s/g, '');
         const ibanEqual = iban === clientIban;
@@ -225,7 +216,14 @@ document.addEventListener('DOMContentLoaded', function() {
             validationDiv = document.createElement('div');
             validationDiv.id = 'transfer-iban-validation';
             validationDiv.className = 'form-text';
-            ibanInput.parentNode.appendChild(validationDiv);
+            
+            // Trova il div form-text esistente e sostituiscilo
+            const existingFormText = ibanInput.parentNode.querySelector('.form-text');
+            if (existingFormText) {
+                existingFormText.parentNode.replaceChild(validationDiv, existingFormText);
+            } else {
+                ibanInput.parentNode.appendChild(validationDiv);
+            }
         }
         
         // Controllo formato IBAN (primi 4 caratteri)
@@ -259,27 +257,27 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (iban.length === 0) {
             validationDiv.className = 'form-text text-muted';
-            validationDiv.textContent = 'Caratteri inseriti: 0';
+            validationDiv.innerHTML = 'Inserisci l\'IBAN del beneficiario<br><small>Caratteri inseriti: 0</small>';
             submitBtn.disabled = true;
         } else if (hasFormatError) {
             validationDiv.className = 'form-text text-danger';
-            validationDiv.textContent = `Caratteri inseriti: ${iban.length} ✗ ${formatErrorMessage}`;
+            validationDiv.innerHTML = `Inserisci l'IBAN del beneficiario<br><small>Caratteri inseriti: ${iban.length} ✗ ${formatErrorMessage}</small>`;
             submitBtn.disabled = true;
             ibanInput.classList.add('is-invalid');
         } else if (iban.startsWith('IT') && iban.length === 27) {
             validationDiv.className = 'form-text text-success';
-            validationDiv.textContent = `Caratteri inseriti: ${iban.length} ✓ IBAN italiano valido`;
+            validationDiv.innerHTML = `Inserisci l'IBAN del beneficiario<br><small>Caratteri inseriti: ${iban.length} ✓ IBAN italiano valido</small>`;
             isValidIban = true;
         } else if (iban.startsWith('IT') && iban.length !== 27) {
             validationDiv.className = 'form-text text-danger';
-            validationDiv.textContent = `Caratteri inseriti: ${iban.length} ✗ IBAN italiano deve avere 27 caratteri`;
+            validationDiv.innerHTML = `Inserisci l'IBAN del beneficiario<br><small>Caratteri inseriti: ${iban.length} ✗ IBAN italiano deve avere 27 caratteri</small>`;
         } else if (iban.length >= 15 && iban.length <= 34) {
             validationDiv.className = 'form-text text-warning';
-            validationDiv.textContent = `Caratteri inseriti: ${iban.length} (verificare validità)`;
+            validationDiv.innerHTML = `Inserisci l'IBAN del beneficiario<br><small>Caratteri inseriti: ${iban.length} (verificare validità)</small>`;
             isValidIban = true;
         } else if (iban.length > 0 && iban.length < 15) {
             validationDiv.className = 'form-text text-danger';
-            validationDiv.textContent = `Caratteri inseriti: ${iban.length} ✗ Lunghezza non valida`;
+            validationDiv.innerHTML = `Inserisci l'IBAN del beneficiario<br><small>Caratteri inseriti: ${iban.length} ✗ Lunghezza non valida</small>`;
         }
         
         // Controllo IBAN uguale al cliente
@@ -293,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             errorDiv.style.display = 'block';
-            errorDiv.textContent = 'L\'IBAN destinatario non può essere uguale a quello del mittente';
+            errorDiv.textContent = 'Non puoi inviare un bonifico al conto del cliente stesso';
             ibanInput.classList.add('is-invalid');
             submitBtn.disabled = true;
         } else if (hasFormatError || (!isValidIban && iban.length > 0)) {
@@ -321,55 +319,55 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             ibanInput.classList.remove('is-invalid');
             
-            // Abilita pulsante solo se IBAN è valido e non vuoto
-            if (isValidIban && iban.length > 0) {
-                updateSummary(); // Richiama updateSummary per verificare altri campi
-            } else {
-                submitBtn.disabled = true;
-            }
+            // Abilita pulsante solo se IBAN è valido e non vuoto e altri campi compilati
+            updateSummary();
         }
     }
     
+    // Aggiorna riepilogo in tempo reale
+    [beneficiaryInput, amountInput, descriptionInput].forEach(input => {
+        input.addEventListener('input', updateSummary);
+    });
+    
     function updateSummary() {
-        const iban = ibanInput.value;
+        const iban = ibanInput.value.replace(/\s/g, '');
         const beneficiary = beneficiaryInput.value || 'Non specificato';
         const amount = amountInput.value;
         const description = descriptionInput.value;
-
-        const clientIban = '{{ $client->account->iban }}';
-        const ibanEqual = iban.replace(/\s/g, '') === clientIban.replace(/\s/g, '');
+        const clientIban = '{{ $client->account->iban }}'.replace(/\s/g, '');
+        const ibanEqual = iban === clientIban;
         
-        // Controlla se l'IBAN ha errori di validazione
-        const cleanValue = iban.replace(/\s/g, '');
-        let hasValidationError = false;
+        // Controlla se IBAN è valido (usando la stessa logica della validazione)
+        let isValidIban = false;
+        let hasFormatError = false;
         
-        if (cleanValue.length >= 2) {
-            const char1 = cleanValue.charAt(0);
-            const char2 = cleanValue.charAt(1);
+        // Controllo formato
+        if (iban.length >= 2) {
+            const char1 = iban.charAt(0);
+            const char2 = iban.charAt(1);
             if (!(char1 >= 'A' && char1 <= 'Z') || !(char2 >= 'A' && char2 <= 'Z')) {
-                hasValidationError = true;
+                hasFormatError = true;
             }
         }
-        
-        if (cleanValue.length >= 4 && !hasValidationError) {
-            const char3 = cleanValue.charAt(2);
-            const char4 = cleanValue.charAt(3);
+        if (iban.length >= 4 && !hasFormatError) {
+            const char3 = iban.charAt(2);
+            const char4 = iban.charAt(3);
             if (!(char3 >= '0' && char3 <= '9') || !(char4 >= '0' && char4 <= '9')) {
-                hasValidationError = true;
+                hasFormatError = true;
             }
         }
         
-        if (cleanValue.length > 0 && cleanValue.length < 15) {
-            hasValidationError = true;
+        // Controllo validità
+        if (!hasFormatError) {
+            if ((iban.startsWith('IT') && iban.length === 27) || 
+                (iban.length >= 15 && iban.length <= 34)) {
+                isValidIban = true;
+            }
         }
         
-        // Verifica se IBAN è valido per il riepilogo
-        const isValidForSummary = (cleanValue.startsWith('IT') && cleanValue.length === 27) || 
-                                 (cleanValue.length >= 15 && cleanValue.length <= 34 && !hasValidationError);
-        
-        if (iban && amount && description && !ibanEqual && isValidForSummary) {
+        if (isValidIban && amount && description && !ibanEqual && iban.length > 0) {
             summaryBeneficiary.textContent = beneficiary;
-            summaryIban.textContent = iban;
+            summaryIban.textContent = ibanInput.value; // Con formattazione
             summaryAmount.textContent = '€' + parseFloat(amount || 0).toFixed(2).replace('.', ',');
             summaryDescription.textContent = description;
             summary.style.display = 'block';
@@ -379,8 +377,8 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.disabled = true;
         }
     }
-
-    // Validazione prima dell'invio
+    
+    // Validazione prima dell'invio con conferma amministrativa
     form.addEventListener('submit', function(e) {
         const amount = parseFloat(amountInput.value);
         const maxAmount = {{ $client->account->balance }};
@@ -414,6 +412,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Inizializza validazione
+    submitBtn.disabled = true; // Inizialmente disabilitato
     validateTransferForm();
 });
 </script>
