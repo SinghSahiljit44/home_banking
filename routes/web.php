@@ -20,30 +20,6 @@ use App\Http\Controllers\Employee\EmployeeClientController;
 // Homepage
 Route::view('/', 'index');
 
-// FUNZIONE HELPER 
-if (!function_exists('clearSecurityData')) {
-    function clearSecurityData(Request $request): void
-    {
-        $securityKeys = [
-            'forced_logout_redirect',
-            'forced_logout_reason',
-            'security_message',
-            '_previous',
-            '_flash',
-            'errors'
-        ];
-        
-        foreach ($securityKeys as $key) {
-            $request->session()->forget($key);
-        }
-        
-        \Log::info('Security cleanup performed:', [
-            'ip' => $request->ip(),
-            'keys_cleared' => count($securityKeys)
-        ]);
-    }
-}
-
 // Routes per ospiti (non autenticati)
 Route::middleware(['web'])->group(function () {
     
@@ -54,7 +30,6 @@ Route::middleware(['web'])->group(function () {
     // Login cliente 
     Route::post('/login-cliente', function (Request $request) {
 
-        clearSecurityData($request);
         $request->session()->regenerate(true);
         
         $request->validate([
@@ -95,7 +70,6 @@ Route::middleware(['web'])->group(function () {
     // Login lavoratore 
     Route::post('/login-lavoratore', function (Request $request) {
 
-        clearSecurityData($request);
         $request->session()->regenerate(true);
         
         $request->validate([
@@ -231,7 +205,7 @@ Route::middleware(['web', 'auth'])->group(function () {
 });
 
 // ROUTES CON MIDDLEWARE DI SICUREZZA
-Route::middleware(['web', 'auth', 'prevent.back', 'security.session'])->group(function () {
+Route::middleware(['web', 'auth', 'prevent.back'])->group(function () {
     
     // ========== CLIENT ROUTES ==========
     
@@ -451,7 +425,6 @@ Route::post('/logout', function (Request $request) {
     ]);
     
     Auth::logout();
-    clearSecurityData($request);
     $request->session()->invalidate();
     $request->session()->regenerateToken();
     
