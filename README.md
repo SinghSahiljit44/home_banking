@@ -1,4 +1,4 @@
-A comprehensive full-stack digital banking platform developed by Singh Sahiljjt and David Brembati. This application provides a secure and intuitive environment for managing essential banking services, designed with a focus on modular architecture and data integrity.  
+A comprehensive full-stack digital banking platform. This application provides a secure and intuitive environment for managing essential banking services, designed with a focus on modular architecture and data integrity.  
 🚀 Technical Ecosystem
 
     Backend Framework: PHP 8.x with Laravel (MVC Architecture).  
@@ -28,19 +28,3 @@ The system implements a strict Role-Based Access Control (RBAC) model with three
     Data Patterns: Implements the Repository Pattern via Laravel Models and the Decorator Pattern through Blade templating for clean separation of concerns.  
 
     SOLID Principles: Controllers are designed with the Single Responsibility Principle (GRASP) to ensure high cohesion and low coupling.  
-
-🔒 Security Implementation
-
-    Cryptographic Hashing: Employs one-way hashing for all user passwords and security question answers, ensuring that even system administrators cannot view raw credentials.  
-
-    Account Safety: Features robust "Account Locking" and "User Blocking" mechanisms to prevent unauthorized activity or access during security incidents.  
-
-    Internal Security: Custom authentication layers (independent of standard kits like Jetstream) provide a tailored, secure login experience via direct database interrogation.  
-
-📈 Functional Highlights
-
-    Instant Transactions: All deposits, withdrawals, and internal transfers are processed instantly.  
-
-    Audit Trail: Detailed transaction logs including unique reference codes, status tracking, and IBAN-level detail for both sender and receiver.  
-
-    Relational Integrity: Complex database relationships (e.g., ternary assignments between admins, employees, and clients) are managed through a structured schema and Eloquent relationships.
